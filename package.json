@@ -1,0 +1,32 @@
+{
+  "name": "xiaozhangben-pwa",
+  "version": "1.0.0",
+  "description": "小账本 · 极简记账 PWA",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "icons": "node scripts/gen-icons.mjs",
+    "typecheck": "tsc --noEmit",
+    "release": "node scripts/release.mjs"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "1.64",
+    "fake-indexeddb": "^6.2.5",
+    "sharp": "^0.35.5",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.4",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.3",
+    "workbox-window": "^7.4.1"
+  },
+  "dependencies": {
+    "idb": "^8.0.4"
+  },
+  "private": true,
+  "type": "module"
+}
