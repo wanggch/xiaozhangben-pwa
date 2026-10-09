@@ -10,7 +10,7 @@ export function watchErrors(page: Page) {
 
 /** 首次打开：走完引导（可选载入示例数据） */
 export async function start(page: Page, opts: { sample?: boolean } = {}) {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('#ob')).not.toHaveClass(/hide/);
   if (opts.sample) {
     await page.click('[data-ob="next"]'); await page.click('[data-ob="next"]');

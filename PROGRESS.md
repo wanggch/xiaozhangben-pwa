@@ -27,5 +27,9 @@
 - 4 位 PIN 只能防随手查看，数据未加密
 - 需要真机（iPhone Safari / Android Chrome）验证安装、全屏、安全区与手势手感
 
+## M7 GitHub Pages 部署（2026-10-09，用户已同意）
+- 子路径 /xiaozhangben-pwa/ 适配（`--mode pages` / `BASE` 环境变量），Actions 工作流自动部署
+- 线上地址：https://wanggch.github.io/xiaozhangben-pwa/
+
 ## 下一步
-- 真机验收后部署到 HTTPS 静态托管（需用户确认后再进行，当前未部署、未推送）
+- 真机（iPhone Safari / Android Chrome）验收安装与全屏

@@ -1,5 +1,7 @@
 # 小账本 · PWA
 
+**线上地址：<https://wanggch.github.io/xiaozhangben-pwa/>**（GitHub Pages，推送到 `main` 后自动部署）
+
 极简个人记账网页 App（PWA）。按已确认的原型（`/workspace/ledger-prototype/index.html`）1:1 实现，数据只保存在本机浏览器（IndexedDB），可离线使用，可「添加到主屏幕」全屏运行。
 
 - 记一笔：支出 / 收入 / 转账，大号数字键盘支持 `+ −` 连算（按「=」后统一显示两位小数）
@@ -70,14 +72,23 @@ E2E 默认使用系统 Chrome（`/usr/bin/google-chrome`），也可用 `CHROME=
 - 或命令行：`npx wrangler pages deploy dist --project-name xiaozhangben`。
 - 同样会读取 `dist/_headers`（与 Netlify 格式相同）。
 
-### GitHub Pages（子路径）
+### GitHub Pages（子路径，本仓库正在使用）
+
+本仓库已配置 `.github/workflows/deploy.yml`：推送到 `main`（或在 Actions 页手动运行）时，先跑单元测试，再以子路径 `/xiaozhangben-pwa/` 构建并用官方 `actions/deploy-pages` 发布。
+仓库 Settings → Pages → Source 需为 **GitHub Actions**（已设置）。
+
+本地按线上同样的子路径构建与测试：
 
 ```bash
-BASE=/仓库名/ npm run build      # Windows PowerShell：$env:BASE="/仓库名/"; npm run build
+npm run build:pages            # = vite build --mode pages，base 为 /xiaozhangben-pwa/
+npm run test:e2e:pages         # 在 http://localhost:4179/xiaozhangben-pwa/ 下跑 E2E
 ```
 
-然后把 `dist/` 发布到 `gh-pages` 分支，或用官方 Actions（`actions/upload-pages-artifact` 上传 `dist`，再 `actions/deploy-pages`）。
-若使用自定义域名部署在根路径，则不需要设置 `BASE`。
+部署到其他仓库名的子路径：`BASE=/仓库名/ npm run build`（Windows PowerShell：`$env:BASE="/仓库名/"; npm run build`），
+`BASE` 会同时作用于资源路径、manifest 的 `start_url` / `scope` / `id`、快捷方式和 Service Worker 作用域。
+不设置时默认为 `/`（本地开发、Vercel / Netlify / Cloudflare Pages 都用这个）。
+
+注意：GitHub Pages 不读取 `_headers`，HTML 默认缓存约 10 分钟，所以发布后最多约 10 分钟内 App 会出现「发现新版本」提示。
 
 ## 安装到手机
 

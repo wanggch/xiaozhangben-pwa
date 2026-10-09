@@ -1,10 +1,13 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// 部署到子路径（如 GitHub Pages 的 /仓库名/）时：BASE=/仓库名/ npm run build
-const base = process.env.BASE || '/';
+// 部署路径：默认 /（本地开发、Vercel / Netlify / Cloudflare Pages）
+// GitHub Pages 子路径：npm run build:pages（= --mode pages → /xiaozhangben-pwa/），或 BASE=/仓库名/ npm run build
+export default defineConfig(({ mode }) => {
+const raw = process.env.BASE || (mode === 'pages' ? '/xiaozhangben-pwa/' : '/');
+const base = ('/' + raw + '/').replace(/\/+/g, '/');
 
-export default defineConfig({
+return {
   base,
   build: { target: 'es2020', cssCodeSplit: false, assetsInlineLimit: 0, sourcemap: false },
   plugins: [
@@ -51,4 +54,5 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+};
 });

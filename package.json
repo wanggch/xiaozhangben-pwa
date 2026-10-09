@@ -11,7 +11,9 @@
     "test:e2e": "playwright test",
     "icons": "node scripts/gen-icons.mjs",
     "typecheck": "tsc --noEmit",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "build:pages": "tsc --noEmit && vite build --mode pages",
+    "test:e2e:pages": "BASE=/xiaozhangben-pwa/ playwright test"
   },
   "license": "MIT",
   "devDependencies": {

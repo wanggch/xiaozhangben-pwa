@@ -115,13 +115,13 @@ test.describe('导航与返回键', () => {
 
   test('主屏幕快捷方式 ?action=record 直接打开记一笔，并从地址栏移除参数', async ({ page }) => {
     await start(page);
-    await page.goto('/?action=record');
+    await page.goto('./?action=record');
     await expect(page.locator('#rec')).toHaveClass(/open/);
     expect(new URL(page.url()).search).toBe('');
   });
 
   test('原型录屏参数与调试接口不存在', async ({ page }) => {
-    await page.goto('/?ob=0&tab=stats&theme=dark&go=budget');
+    await page.goto('./?ob=0&tab=stats&theme=dark&go=budget');
     await expect(page.locator('#ob')).not.toHaveClass(/hide/);
     expect(await page.evaluate(() => 'ledger' in window || '__ledger' in window)).toBe(false);
     expect(await page.evaluate(() => document.documentElement.dataset.theme)).not.toBe('dark');
@@ -222,6 +222,17 @@ test.describe('PWA', () => {
       expect(manifest.name).toBe('小账本');
       expect(manifest.display).toBe('standalone');
       expect(manifest.icons.some((i: any) => i.purpose === 'maskable')).toBe(true);
+      // 子路径部署：start_url / scope / id / 快捷方式都在 base 之下，图标可加载
+      const base = new URL(baseURL!).pathname;
+      expect(manifest.start_url).toBe(base); expect(manifest.scope).toBe(base); expect(manifest.id).toBe(base);
+      expect(manifest.shortcuts[0].url).toBe(base + '?action=record');
+      for (const i of manifest.icons) expect((await page.request.get(new URL(i.src, baseURL + 'manifest.webmanifest').href)).status()).toBe(200);
+      expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.scope)).toBe(baseURL);
+      for (const l of await page.locator('link[rel~="icon"], link[rel="apple-touch-icon"], link[rel="manifest"]').all()) {
+        const href = await l.evaluate(e => (e as HTMLLinkElement).href);
+        expect(href.startsWith(baseURL!), href).toBe(true);
+        expect((await page.request.get(href)).status(), href).toBe(200);
+      }
       const cdp = await ctx.newCDPSession(page);
       const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');
       expect(installabilityErrors).toEqual([]);
