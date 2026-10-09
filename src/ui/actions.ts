@@ -3,7 +3,7 @@ import { S, save, replaceState, flush } from '../data/store';
 import { ACT, ui, switchTab, toast, openSheet, closeSheet, confirmSheet, withUndo, refresh, push, pop, top, RENDER, renderTab, setSegKnob, closeTop, sheetOpen, money } from './app';
 import { $, $$, esc } from './dom';
 import { ico } from './icons';
-import { getAcct, getCat } from '../core/ledger';
+import { getAcct, getCat, sortedAccounts } from '../core/ledger';
 import { ymAdd, curYM, today } from '../core/dates';
 import { periodRange, shiftAnchor } from '../core/stats';
 import { advance, runRecurring, txFromRule } from '../core/recurring';
@@ -51,7 +51,7 @@ function sampleLoad() { applySamples(S, today()); runRecurring(S, today()); save
 Object.assign(ACT, {
   bookSwitch: () => bookSheet(),
   hideTip() { S.meta.sampleTip = false; save(); const tip = $('.sample-tip'); if (tip) { tip.style.transition = 'opacity .3s'; tip.style.opacity = '0'; } setTimeout(renderTab, 280); },
-  transfer: (b: HTMLElement) => { if (S.accounts.length < 2) { toast('至少需要两个账户才能转账', 'warn'); return; } openRec({ type: 'transfer', acct: b.dataset.from || undefined }); },
+  transfer: (b: HTMLElement) => { if (S.accounts.length < 2) { toast('至少需要两个账户才能转账', 'warn'); return; } openRec({ type: 'transfer', acct: b.dataset.from || sortedAccounts(S)[0].id }); },
   recWithAcct: (b: HTMLElement) => openRec({ acct: b.dataset.acct }),
   editTx: (b: HTMLElement) => { const t = S.tx.find(x => x.id === b.dataset.id); t && openRec({ edit: t }); },
   copyTx: (b: HTMLElement) => { const t = S.tx.find(x => x.id === b.dataset.id); t && openRec({ copy: t }); },

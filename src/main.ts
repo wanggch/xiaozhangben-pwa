@@ -14,7 +14,7 @@ import './ui/subs/recurs';
 import './ui/subs/books';
 import './ui/subs/settings';
 import { initActions } from './ui/actions';
-import { initRecord, renderCats, renderAmount, recOpen, closeRec } from './ui/record';
+import { initRecord, renderCats, renderAmount, recOpen, closeRec, openRec } from './ui/record';
 import { initEdgeBack } from './ui/gestures';
 import { lockOpen, showLock, initAutoLock } from './ui/lock';
 import { showOnboarding } from './ui/onboarding';
@@ -36,8 +36,13 @@ async function boot() {
   const generated = runRecurring(S, today()); if (generated) save();
   renderCats(); renderAmount(); RENDER.home();
   $('#app').classList.remove('booting');
-  if (S.settings.lock && S.settings.pin) showLock('unlock');
+  // 主屏幕快捷方式「记一笔」：manifest shortcuts → /?action=record（读取后立即从地址栏移除）
+  const quick = new URLSearchParams(location.search).get('action') === 'record';
+  if (quick) history.replaceState(history.state, '', location.pathname);
+  const openQuick = () => { if (quick && S.meta.onboarded) setTimeout(() => openRec(), 250); };
+  if (S.settings.lock && S.settings.pin) showLock('unlock', openQuick);
   else if (!S.meta.onboarded) showOnboarding();
+  else openQuick();
   if (generated) setTimeout(() => toast(`已自动生成 ${generated} 笔周期账单`), 700);
   checkReminder();
   if (isStandalone()) requestPersist();
@@ -67,5 +72,5 @@ async function boot() {
 }
 boot().catch(err => {
   console.error(err);
-  document.body.innerHTML = `<div style="padding:40px 24px;font:15px/1.7 system-ui;color:#16161A">小账本启动失败：${String(err?.message || err)}<br/>请刷新重试。</div>`;
+  document.body.innerHTML = `<div style="padding:40px 24px;font:15px/1.7 system-ui;color:#16161A">小账本启动失败：${String(err?.message || err).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`)}<br/>请刷新重试。</div>`;
 });

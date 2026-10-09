@@ -35,7 +35,8 @@ export function openLedgerDB(name = DB_NAME): Promise<DB> {
       // if (oldVersion < 2) { ...未来的结构迁移... }
     },
     blocked() { /* 旧标签页未关闭，等待即可 */ },
-    blocking() { /* 新版本需要升级，交给 SW 更新提示刷新 */ },
+    // 新版本页面需要升级结构：关闭本连接让升级继续（旧页面随后会被 SW 更新提示刷新）
+    blocking(_cur, _next, e) { (e.target as IDBDatabase).close(); },
   });
 }
 
