@@ -1,4 +1,5 @@
 /** 预算 / 分类预算 */
+import { catTone } from '../../core/tones';
 import { S, save } from '../../data/store';
 import { SUB, money, catIco, openSheet, closeSheet, refresh, toast, cur } from '../app';
 import { $, $$, esc } from '../dom';
@@ -40,8 +41,8 @@ SUB.budget = () => {
       <div class="card-h"><h3>分类预算</h3><button class="htxt" style="padding:0" data-go="catBudgets">管理</button></div>
       ${set.length ? set.map(c => {
         const sp = sumAmt(exps.filter(t => t.cat === c.id)); const b = bk.catBudgets[c.id]; const p = sp / b; const over = sp > b;
-        return `<div class="cb" role="button" tabindex="0" data-catbud="${esc(c.id)}">${catIco(c.id)}<div class="mid"><div class="t">${esc(c.name)}<span class="num ${over ? 'over' : ''}">${over ? '超支 ' + money(sp - b) : money(sp) + ' / ' + money(b)}</span></div>
-          <div class="track"><i data-w="${Math.min(100, p * 100)}" style="background:${over ? 'var(--danger)' : p >= .8 ? 'var(--warn)' : 'var(--accent)'}"></i></div></div></div>`;
+        return `<div class="cb t-${catTone(c)}" role="button" tabindex="0" data-catbud="${esc(c.id)}">${catIco(c.id)}<div class="mid"><div class="t">${esc(c.name)}<span class="num ${over ? 'over' : ''}">${over ? '超支 ' + money(sp - b) : money(sp) + ' / ' + money(b)}</span></div>
+          <div class="track"><i data-w="${Math.min(100, p * 100)}" style="background:${over ? 'var(--danger)' : p >= .8 ? 'var(--warn)' : 'var(--tc)'}"></i></div></div></div>`;
       }).join('')
         : `<div class="empty" style="padding:18px 0 6px">还没有分类预算<br/><button class="btn line" style="width:auto;padding:0 20px;display:inline-flex;margin-top:14px" data-go="catBudgets">去设置</button></div>`}
     </div>`,

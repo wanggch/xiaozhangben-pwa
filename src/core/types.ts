@@ -38,6 +38,8 @@ export interface Category {
   name: string;
   icon: string;
   shade: number;
+  /** 颜色（TONES 之一）；缺省时按图标自动配色 */
+  tone?: string;
 }
 
 export interface Book {

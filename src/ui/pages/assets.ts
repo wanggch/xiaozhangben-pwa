@@ -10,8 +10,8 @@ RENDER.assets = function () {
   const groups: [string, typeof accts][] = [['资金账户', accts.filter(a => a.type !== 'credit')], ['信用账户', accts.filter(a => a.type === 'credit')]];
   el.innerHTML = `
     <div class="topbar" style="margin-top:18px"><h1 class="title">资产</h1><button class="tool" data-go="acctEdit" aria-label="新增账户">${ico('plus')}</button></div>
-    <div class="overview acct-hero">
-      <div class="eyebrow">净资产</div>
+    <div class="overview acct-hero hero ink">
+      <div class="hero-top"><span class="eyebrow">净资产</span><span class="hero-n">${accts.length} 个账户</span></div>
       <div class="big num" data-count="${nw.net}" data-fmt="big">${bigHTML(0)}</div>
       <div class="pair"><div><div class="eyebrow">资产</div><div class="v num" data-count="${nw.as}">${money(0)}</div></div><div><div class="eyebrow">负债</div><div class="v num" data-count="${nw.li}">${money(0)}</div></div></div>
     </div>

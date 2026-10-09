@@ -4,6 +4,7 @@ import { SUB, catIco, renderSub, pop, refresh, toast, segHTML } from '../app';
 import { $, $$, dataP, esc } from '../dom';
 import { ico } from '../icons';
 import { PICK_ICONS, SYS_CATS } from '../../core/constants';
+import { TONES, TONE_NAMES, autoTone, normTone } from '../../core/tones';
 import { uid } from '../../core/id';
 import { bindDragSort } from '../gestures';
 import type { CatType } from '../../core/types';
@@ -32,28 +33,35 @@ SUB.cats = (p) => {
 
 SUB.catEdit = (p) => {
   const type = p.type as CatType;
-  const c = p.id ? S.cats[type].find(x => x.id === p.id) : null; const icon = c ? c.icon : 'tag', sh = c ? (c.shade || 0) : 1;
-  const SH: [string, string][] = [['sh0', '默认'], ['sh1', '浅'], ['sh2', '中'], ['sh3', '深'], ['sh4', '主色']];
+  const c = p.id ? S.cats[type].find(x => x.id === p.id) : null; const icon = c ? c.icon : 'tag';
+  const tone0 = c && normTone(c.tone) ? c.tone! : '';
+  const sw = (k: string, n: string) => `<button class="sw ${k ? 't-' + k : 'auto'}" data-t="${k}" aria-label="颜色 ${n}" aria-pressed="false" title="${n}"><i></i></button>`;
   return {
     title: c ? '编辑分类' : `新增${type === 'expense' ? '支出' : '收入'}分类`, right: `<button class="htxt" data-act="saveCat">保存</button>`, body: `
-    <div class="preview"><span class="cat-ico sh${sh}" id="cPrev">${ico(icon)}</span><b id="cPrevName">${c ? esc(c.name) : '新分类'}</b></div>
+    <div class="preview"><span class="cat-ico t-${tone0 || autoTone(icon, c?.id)}" id="cPrev">${ico(icon)}</span><b id="cPrevName">${c ? esc(c.name) : '新分类'}</b></div>
     <div class="field"><label for="cName">名称</label><input class="input" id="cName" maxlength="6" placeholder="最多 6 个字" value="${c ? esc(c.name) : ''}"/></div>
+    <div class="field"><label>颜色</label><div class="swatches" id="cTones">${sw('', '自动')}${TONES.map(k => sw(k, TONE_NAMES[k])).join('')}</div></div>
     <div class="field"><label>图标</label><div class="icon-grid" id="cIcons">${PICK_ICONS.map(k => `<button class="${k === icon ? 'on' : ''}" data-i="${k}" aria-label="图标 ${k}" aria-pressed="${k === icon}">${ico(k)}</button>`).join('')}</div></div>
-    <div class="field"><label>颜色深浅</label><div class="shades" id="cShades">${SH.map(([k, n], i) => `<button class="${k} ${i === sh ? 'on' : ''}" data-s="${i}" title="${n}" aria-label="颜色 ${n}" aria-pressed="${i === sh}">${ico(icon)}</button>`).join('')}</div></div>
     ${c && !SYS_CATS.includes(c.id) ? `<button class="btn line" style="color:var(--danger);margin-top:30px" data-act="delCat" data-type="${type}" data-id="${esc(c.id)}">${ico('trash')}删除分类</button>` : c ? '<p class="hint">「其他」为默认分类，不可删除</p>' : ''}`,
     mount(el, pg) {
-      const st = { icon, sh };
+      const st = { icon, tone: tone0 };
       const upd = () => {
-        const pv = $('#cPrev', el); pv.className = `cat-ico sh${st.sh}`; pv.innerHTML = ico(st.icon);
-        $$('#cShades button', el).forEach(b => { b.innerHTML = ico(st.icon); b.classList.toggle('on', +b.dataset.s! === st.sh); b.setAttribute('aria-pressed', String(+b.dataset.s! === st.sh)); });
+        const t = st.tone || autoTone(st.icon, c?.id);
+        const pv = $('#cPrev', el); pv.className = `cat-ico t-${t}`; pv.innerHTML = ico(st.icon);
+        el.style.setProperty('--pick', `var(--${t})`);
+        $$('#cTones button', el).forEach(b => { const on = b.dataset.t === st.tone; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+        $('#cTones .auto', el).className = `sw auto t-${autoTone(st.icon, c?.id)}${st.tone ? '' : ' on'}`;
       };
+      upd();
       $('#cIcons', el).addEventListener('click', e => { const b = (e.target as Element).closest<HTMLElement>('button'); if (!b) return; st.icon = b.dataset.i!; $$('#cIcons button', el).forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); }); upd(); });
-      $('#cShades', el).addEventListener('click', e => { const b = (e.target as Element).closest<HTMLElement>('button'); if (!b) return; st.sh = +b.dataset.s!; upd(); });
+      $('#cTones', el).addEventListener('click', e => { const b = (e.target as Element).closest<HTMLElement>('button'); if (!b) return; st.tone = b.dataset.t || ''; upd(); });
       $('#cName', el).addEventListener('input', e => $('#cPrevName', el).textContent = (e.target as HTMLInputElement).value.trim() || '新分类');
       pg.save = () => {
         const name = $<HTMLInputElement>('#cName', el).value.trim(); if (!name) { toast('请填写分类名称', 'warn'); $('#cName', el).focus(); return; }
         if (S.cats[type].some(x => x.name === name && x.id !== p.id)) { toast('已有同名分类', 'warn'); return; }
-        if (c) Object.assign(c, { name, icon: st.icon, shade: st.sh }); else S.cats[type].push({ id: 'c' + uid(), name, icon: st.icon, shade: st.sh });
+        const tone = st.tone || undefined;
+        if (c) { Object.assign(c, { name, icon: st.icon }); if (tone) c.tone = tone; else delete c.tone; }
+        else S.cats[type].push({ id: 'c' + uid(), name, icon: st.icon, shade: 0, ...(tone ? { tone } : {}) });
         save(); pop(); refresh(); toast(c ? '分类已更新' : `已新增分类「${esc(name)}」`);
       };
       if (!c) setTimeout(() => $('#cName', el).focus({ preventScroll: true }), 520);

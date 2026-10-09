@@ -10,6 +10,8 @@ import { ACCT_TYPES } from '../core/constants';
 import type { Period } from '../core/stats';
 import { $, $$, esc, raf2 } from './dom';
 import { ico } from './icons';
+import { illus } from './illus';
+import { acctTone, catTone } from '../core/tones';
 
 /* ---------- 共享 UI 状态 ---------- */
 export const ui = {
@@ -23,14 +25,18 @@ export const ui = {
 export const cur = () => S?.settings?.currency || '¥';
 export const money = (c: number) => moneyFmt(c, cur());
 export const bigHTML = (v: number) => { const [i, d] = fmt2(v).split('.'); return `<span class="cur">${v < 0 ? '-' : ''}${esc(cur())}</span>${i}<span class="dec">.${d}</span>`; };
-export const catIco = (id: string | null) => { const c = getCat(S, id); return `<span class="cat-ico sh${c.shade || 0}">${ico(c.icon)}</span>`; };
-export const acctIco = (a?: Account) => `<span class="cat-ico sh0">${ico(a ? ACCT_TYPES[a.type]?.icon || 'wallet' : 'wallet')}</span>`;
-export const txIco = (t: Tx) => t.type === 'transfer' ? `<span class="cat-ico sh0">${ico('transfer')}</span>` : catIco(t.cat);
+export const toneIco = (icon: string, tone: string, cls = '') => `<span class="cat-ico t-${tone}${cls ? ' ' + cls : ''}">${ico(icon)}</span>`;
+export const catIco = (id: string | null) => { const c = getCat(S, id); return toneIco(c.icon, catTone(c)); };
+export const acctIco = (a?: Account) => toneIco(a ? ACCT_TYPES[a.type]?.icon || 'wallet' : 'wallet', acctTone(a?.type));
+export const txIco = (t: Tx) => t.type === 'transfer' ? toneIco('transfer', 'slate') : catIco(t.cat);
 export const txTitle = (t: Tx) => t.type === 'transfer' ? '转账' : getCat(S, t.cat).name;
 export const txSub = (t: Tx) => t.type === 'transfer' ? `${esc(acctName(S, t.acct))} → ${esc(acctName(S, t.toAcct))}${t.note ? ' · ' + esc(t.note) : ''}` : (esc(t.note) || '无备注');
 export const txAmt = (t: Tx) => t.type === 'transfer' ? fmt2(t.amount) : (t.type === 'income' ? '+' : '-') + fmt2(t.amount);
 export const sampleTag = (o?: { sample?: boolean } | null) => o && o.sample ? '<span class="tag">示例</span>' : '';
-export const empty = (icon: string, text: string, extra = '') => `<div class="empty"><div class="ill">${ico(icon)}</div>${text}${extra}</div>`;
+export const empty = (icon: string, text: string, extra = '') => {
+  const [t, ...rest] = text.split(/<br\/?>/); const il = illus(icon);
+  return `<div class="empty">${il ? `<div class="ill-svg">${il}</div>` : `<div class="ill">${ico(icon)}</div>`}<p class="e-t">${t}</p>${rest.length ? `<p class="e-s">${rest.join('<br/>')}</p>` : ''}${extra}</div>`;
+};
 export const segHTML = (key: string, opts: [string | number, string][], curV: unknown, cls = '', label = '') =>
   `<div class="seg ${cls}" data-seg="${key}" role="tablist"${label ? ` aria-label="${label}"` : ''}><span class="knob"></span>${opts.map(([v, n]) => `<button data-v="${v}" role="tab" aria-selected="${String(curV) === String(v)}" class="${String(curV) === String(v) ? 'on' : ''}">${n}</button>`).join('')}</div>`;
 export const monthPill = () => `<div class="month"><button data-mon="-1" aria-label="上个月">${ico('left')}</button><span>${ymLabel(ui.month)}</span><button data-mon="1" ${ui.month >= curYM() ? 'disabled' : ''} aria-label="下个月">${ico('right')}</button></div>`;

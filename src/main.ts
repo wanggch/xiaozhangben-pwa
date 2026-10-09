@@ -1,5 +1,6 @@
 import './styles/proto.css';
 import './styles/app.css';
+import './styles/v2.css';
 import { load, save, S, onExternalChange, requestPersist, flush, getSyncState, setSyncState, wipeLocal } from './data/store';
 import { RENDER, ui, refresh, toast, initHistory, setLayerHooks, setApplyThemeHook, initSegs, openSheet, closeSheet } from './ui/app';
 import './ui/pages/home';

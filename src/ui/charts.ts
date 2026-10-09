@@ -8,12 +8,12 @@ export function barSVG(values: number[], labels: string[], opts: { h?: number; h
   const W = 300, H = opts.h || 128, left = 28, bw = (W - left) / n;
   const bars = values.map((v, i) => {
     const h = v / nice * H; const hi = opts.hi ? opts.hi(i) : v === max;
-    return v > 0 ? `<rect class="b" data-i="${i}" x="${(left + i * bw + bw * .2).toFixed(2)}" y="${(H - Math.max(h, 2)).toFixed(2)}" width="${(bw * .6).toFixed(2)}" height="${Math.max(h, 2).toFixed(2)}" rx="${Math.min(3, bw * .3).toFixed(2)}" style="fill:${hi ? 'var(--accent)' : 'rgba(var(--accent-rgb),.22)'};animation-delay:${i * (n > 12 ? 16 : 40)}ms"></rect>` : '';
+    return v > 0 ? `<rect class="b" data-i="${i}" x="${(left + i * bw + bw * .2).toFixed(2)}" y="${(H - Math.max(h, 2)).toFixed(2)}" width="${(bw * .6).toFixed(2)}" height="${Math.max(h, 2).toFixed(2)}" rx="${Math.min(3, bw * .3).toFixed(2)}" style="fill:${hi ? 'url(#barHi)' : 'rgba(var(--accent-rgb),.2)'};animation-delay:${i * (n > 12 ? 16 : 40)}ms"></rect>` : '';
   }).join('');
   const grid = [0, .5, 1].map(f => `<line x1="${left}" x2="${W}" y1="${H - f * H}" y2="${H - f * H}" stroke-dasharray="${f ? '2 4' : ''}"></line><text x="0" y="${H - f * H + 3}">${short(nice * f)}</text>`).join('');
   const idx = n > 12 ? [0, 9, 19, n - 1] : [...Array(n).keys()];
   const xl = idx.map(i => `<text x="${left + (i + .5) * bw}" y="${H + 16}" text-anchor="middle">${labels[i]}</text>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H + 22}" role="img" aria-label="${opts.label || '柱状图'}">${grid}${bars}${xl}</svg><div class="tip num" aria-live="polite"></div>`;
+  return `<svg viewBox="0 0 ${W} ${H + 22}" role="img" aria-label="${opts.label || '柱状图'}"><defs><linearGradient id="barHi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent-2)"/><stop offset="1" style="stop-color:var(--accent)"/></linearGradient></defs>${grid}${bars}${xl}</svg><div class="tip num" aria-live="polite"></div>`;
 }
 
 export function bindBars(card: HTMLElement | null, values: number[], tipText: (i: number, v: number) => string) {

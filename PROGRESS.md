@@ -56,3 +56,11 @@
 - install.sh：`--node-bin`、私有 Node 回退、`--write-nginx`、`--no-caddy`；systemd/CLI 使用实际 NODE_BIN，不覆盖系统 Node、不改防火墙
 - release.sh：`--app-port` / `--no-caddy` / `--write-nginx` / `--node-bin` / `--skip-apt`
 - `deploy/nginx-site.conf.example`：反代模板（证书交给 certbot）
+
+## 阶段五：用户反馈修复 + 视觉改版 v2（2026-10-09，未部署，等待用户看截图确认）
+- [x] M13 记一笔默认「不选择账户」：新增设置「记账默认账户」（默认不选，随 settings 同步；删除账户/修复数据时回退为不选）；不再记住上次账户；周期账单新建同样默认；无账户账单不影响任何余额与净资产；转账仍必须选两个账户。单测 + E2E
+- [x] M14 登录页重做：品牌标识 + 标语、渐变光晕与点阵底纹、半透明卡片、带图标输入框（聚焦/错误态）、显示/隐藏密码、按钮加载态、错误提示与抖动、入场动画、「数据加密传输 · 离线可用」页脚；深色模式单独调色；保留全部元素 id
+- [x] M15 App 视觉系统 v2（src/styles/v2.css）：设计令牌（圆角/阴影层级/间距/字号/色板）；分类与账户 9 色柔和配色（按图标自动，分类编辑可选颜色，Category.tone 可选字段，兼容旧数据）；首页渐变总览卡（支出/收支/预算进度）；资产墨色卡；金额排版；手绘风 SVG 空状态；Tab 栏指示条 + 渐变记一笔按钮；记一笔彩色分类与键盘；统计环形图用分类色、柱状图渐变；我的/账号页头部；列表按压反馈；遵守减少动态效果
+- 截图（不入库）：release/screenshots/v1-before/（改版前）、release/screenshots/v2/（改版后，含 overview.png、login-compare.png、home-compare.png）；生成脚本 scripts/shots.mjs、scripts/montage.mjs（本地临时库 + 示例数据，不使用真实账号）
+- Lighthouse（本沙箱，移动端模拟，同环境改版前/后各 4 次）：App 性能中位数 82 → 82，无障碍 95 → 95（扣分项均为引导页装饰数字与 Toast 动画中间态，改版前后相同），最佳实践 100；登录页 性能 100 / 无障碍 100 / 最佳实践 100（SEO 仅因登录页 noindex 扣分，有意为之）
+- 测试：前端单元 45/45、后端接口 26/26、E2E 23/23

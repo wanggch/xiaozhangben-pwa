@@ -7,6 +7,7 @@ import { sumAmt } from '../../core/money';
 import { curYM, md, parseD, today } from '../../core/dates';
 import { inRange, periodRange, shiftAnchor } from '../../core/stats';
 import { barSVG, bindBars } from '../charts';
+import { catTone } from '../../core/tones';
 
 const SHADE = [1, .7, .5, .36, .25, .17, .11, .07];
 export const shade = (i: number) => `rgba(var(--accent-rgb),${SHADE[Math.min(i, SHADE.length - 1)]})`;
@@ -22,7 +23,8 @@ RENDER.stats = function () {
   // 已删除分类的账单归入「未分类」
   const known = new Set(S.cats[type].map(c => c.id)); const orphan = L.filter(t => !known.has(t.cat || ''));
   if (orphan.length) byCat.push({ id: '__none', name: '未分类', icon: 'tag', shade: 0, v: sumAmt(orphan), n: orphan.length, color: '' });
-  byCat.forEach((c, i) => c.color = shade(i));
+  const seen: Record<string, number> = {};
+  byCat.forEach(c => { const t = c.id === '__none' ? 'slate' : catTone(c); const k = seen[t] = (seen[t] || 0) + 1; c.color = k === 1 ? `var(--${t})` : `color-mix(in srgb,var(--${t}) ${Math.max(35, 100 - (k - 1) * 28)}%,var(--card))`; });
   if (ui.statSel && !byCat.find(c => c.id === ui.statSel)) ui.statSel = null;
   const word = type === 'expense' ? '支出' : '收入'; const diff = prev ? (total - prev) / prev : null;
   const RR = 78, C = 2 * Math.PI * RR, gap = byCat.length > 1 ? 4 : 0; let acc = 0;

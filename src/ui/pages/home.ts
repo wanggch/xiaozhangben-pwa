@@ -17,16 +17,17 @@ RENDER.home = function () {
     <div class="toprow"><button class="book-btn" data-act="bookSwitch" aria-label="切换账本，当前：${esc(getBook(S).name)}">${ico('book')}${esc(getBook(S).name)}${ico('down')}</button>
       <div class="tools"><button class="tool" data-go="search" aria-label="搜索">${ico('search')}</button><button class="tool" data-go="calendar" aria-label="日历">${ico('calendar')}</button></div></div>
     <div class="topbar"><h1 class="title">账单</h1>${monthPill()}</div>
-    <div class="overview">
-      <div class="eyebrow">${isCur ? '本月支出' : ymLabel(ui.month) + ' 支出'}</div>
+    <div class="overview hero">
+      <div class="hero-top"><span class="eyebrow">${isCur ? '本月支出' : ymLabel(ui.month) + ' 支出'}</span>${list.length ? `<span class="hero-n num">${list.length} 笔</span>` : ''}</div>
       <div class="big num" data-count="${exp}" data-fmt="big">${bigHTML(0)}</div>
       <div class="pair">
         <div><div class="eyebrow">收入</div><div class="v num" data-count="${inc}">${money(0)}</div></div>
         <div><div class="eyebrow">结余</div><div class="v num" data-count="${bal}">${money(0)}</div></div>
       </div>
-      ${isCur && B ? `<div class="budget-line" data-go="budget" role="button" tabindex="0" style="cursor:pointer"><div class="meta"><span>月预算 <span class="num">${money(B)}</span></span><span class="num" style="${pct > 1 ? 'color:var(--danger)' : ''}">${pct > 1 ? '超支 ' + money(exp - B) : '剩余 ' + money(B - exp)}</span></div><div class="track"><i class="${pct > 1 ? 'over' : ''}" data-w="${Math.min(100, pct * 100)}"></i></div></div>` : ''}
-      ${S.meta.sampleTip && hasSample(S) ? `<div class="sample-tip"><span class="dot"></span>当前为示例数据，可在「设置」中清除<button data-act="hideTip">知道了</button></div>` : ''}
+      ${isCur && B ? `<div class="budget-line" data-go="budget" role="button" tabindex="0" aria-label="月预算 ${money(B)}，${pct > 1 ? '已超支' : '已用 ' + Math.round(pct * 100) + '%'}"><div class="meta"><span>月预算 <span class="num">${money(B)}</span> · 已用 <span class="num">${Math.round(pct * 100)}%</span></span><span class="num ${pct > 1 ? 'over' : ''}">${pct > 1 ? '超支 ' + money(exp - B) : '剩余 ' + money(B - exp)}</span></div><div class="track"><i class="${pct > 1 ? 'over' : ''}" data-w="${Math.min(100, pct * 100)}"></i></div></div>`
+        : isCur ? `<button class="budget-set" data-go="budget">${ico('target')}设置月预算，掌握花销节奏${ico('right')}</button>` : ''}
     </div>
+    ${S.meta.sampleTip && hasSample(S) ? `<div class="sample-tip"><span class="dot"></span>当前为示例数据，可在「设置」中清除<button data-act="hideTip">知道了</button></div>` : ''}
     ${installTipHTML()}
     ${due.map(r => `<div class="due">${catIco(r.cat)}<div><div class="t">${esc(r.name)} <span class="num" style="font-weight:500">${money(r.amount)}</span></div><div class="s">周期账单 · ${r.next === today() ? '今天到期' : md(r.next) + ' 已到期'}</div></div>
       <div class="acts"><button class="mini-btn" data-due-skip="${esc(r.id)}">跳过</button><button class="mini-btn pri" data-due-ok="${esc(r.id)}">记一笔</button></div></div>`).join('')}

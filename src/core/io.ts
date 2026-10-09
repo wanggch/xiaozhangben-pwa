@@ -1,4 +1,5 @@
 /** 导入 / 导出：JSON 完整备份（v3，金额为分）与 CSV；兼容原型导出的 v2 JSON（金额为元） */
+import { normTone } from './tones';
 import type { Account, AcctType, Book, Category, Freq, Recur, Settings, State, Tx, TxType } from './types';
 import { parseCSV, toCSV } from './csv';
 import { parseCents, plain } from './money';
@@ -48,7 +49,7 @@ export function normalizeBackup(input: unknown): State {
   const base = emptyState();
 
   const cats = (o.cats && Array.isArray(o.cats.expense) && Array.isArray(o.cats.income)) ? o.cats : defaultCats();
-  const normCats = (l: any[]): Category[] => l.filter(c => c && c.id).map(c => ({ id: str(c.id, 64), name: str(c.name, 6) || '未命名', icon: str(c.icon, 32) || 'tag', shade: Math.max(0, Math.min(4, Number(c.shade) || 0)) }));
+  const normCats = (l: any[]): Category[] => l.filter(c => c && c.id).map(c => ({ id: str(c.id, 64), name: str(c.name, 6) || '未命名', icon: str(c.icon, 32) || 'tag', shade: Math.max(0, Math.min(4, Number(c.shade) || 0)), ...(normTone(c.tone) ? { tone: normTone(c.tone) } : {}) }));
   const state: State = { ...base, cats: { expense: normCats(cats.expense), income: normCats(cats.income) } };
   if (!state.cats.expense.find(c => c.id === 'other')) state.cats.expense.push(defaultCats().expense.find(c => c.id === 'other')!);
   if (!state.cats.income.find(c => c.id === 'iother')) state.cats.income.push(defaultCats().income.find(c => c.id === 'iother')!);
