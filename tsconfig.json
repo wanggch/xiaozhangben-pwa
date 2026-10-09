@@ -11,7 +11,7 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["vite/client", "vite-plugin-pwa/client"],
+    "types": ["vite/client", "vite-plugin-pwa/client", "node"],
     "noEmit": true
   },
   "include": ["src", "tests/unit", "vite.config.ts"]

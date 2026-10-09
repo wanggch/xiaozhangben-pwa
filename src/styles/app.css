@@ -1,0 +1,90 @@
+/* ===== 正式版：真实设备布局（覆盖原型中为手机外框准备的尺寸） ===== */
+:root{
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+  --tabpad:max(var(--sab),12px);
+  --tabh:calc(58px + var(--tabpad));
+  color-scheme:light;
+}
+html[data-theme="dark"]{color-scheme:dark}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--bg)}
+body{font-family:var(--font);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased;background:var(--bg);overscroll-behavior:none;transition:background .4s}
+button,[role=button]{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+:focus{outline:none}
+:focus-visible{outline:2px solid rgba(var(--accent-rgb),.65);outline-offset:2px;border-radius:8px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+#app{position:relative;width:100%;height:100vh;height:100dvh;margin:0 auto;overflow:hidden;background:var(--bg);transition:background .4s;isolation:isolate;padding-left:var(--sal);padding-right:var(--sar)}
+/* 桌面宽屏：居中显示一个手机宽度的容器 */
+@media (min-width:600px){
+  body{background:#ECECE9}
+  html[data-theme="dark"] body{background:#060607}
+  #app{max-width:430px;box-shadow:0 0 0 1px rgba(0,0,0,.05),0 30px 80px -30px rgba(0,0,0,.25)}
+}
+@media (min-width:600px) and (min-height:900px){
+  #app{height:min(932px,calc(100dvh - 48px));margin-top:max(24px,calc((100dvh - 932px)/2));border-radius:36px}
+}
+
+/* 页面与安全区 */
+.page{padding:calc(var(--sat) + 14px) 22px calc(var(--tabh) + 40px);overscroll-behavior-y:contain}
+.pages::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--sat);background:var(--bg);z-index:3;pointer-events:none;transition:background .4s}
+.tabbar{height:var(--tabh);padding:10px 14px var(--tabpad)}
+.sub-h{padding:calc(var(--sat) + 6px) 12px 6px}
+.sub-b{padding:6px 20px calc(48px + var(--sab));overscroll-behavior-y:contain;touch-action:pan-y}
+.rec{padding-top:calc(var(--sat) + 8px)}
+.rec-bottom{padding:18px 16px calc(16px + max(var(--sab),12px))}
+.sheet{bottom:calc(10px + var(--sab));max-height:calc(100% - var(--sat) - 40px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.sheet .scroll{max-height:min(420px,calc(100dvh - 300px))}
+.lock{padding-top:var(--sat);padding-bottom:var(--sab)}
+.ob-skip{top:calc(var(--sat) + 12px)}
+.ob-slide{padding:calc(var(--sat) + clamp(48px,9vh,84px)) 30px 0}
+.ob-foot{padding:0 28px calc(var(--sab) + 36px)}
+@media (max-height:720px){
+  .ob-art{height:280px;transform:scale(.86);transform-origin:top left;width:116%}
+  .ob-slide h2{font-size:25px;margin-top:8px}
+  .rec .cats{gap:6px 4px}
+  .key{height:46px}
+}
+
+/* Toast：默认放在底部 Tab 上方；记一笔/弹层/锁屏/引导打开时放到顶部 */
+.toast{top:auto;bottom:calc(var(--tabh) + 18px);transform:translate(-50%,18px) scale(.94);max-width:calc(100% - 32px)}
+.toast span{overflow:hidden;text-overflow:ellipsis}
+.toast.show{transform:translate(-50%,0) scale(1)}
+.rec.open ~ .toast,.sheet.show ~ .toast,.lock.show ~ .toast,.ob:not(.hide) ~ .toast,.toast.top{bottom:auto;top:calc(var(--sat) + 62px)}
+.subs:not(:empty) ~ .toast{bottom:calc(24px + var(--sab))}
+
+/* 二级页左缘滑动返回 */
+.sub.dragging,.root.dragging{transition:none!important}
+
+/* iOS：输入框字号 ≥16px，避免聚焦时页面被放大 */
+@supports (-webkit-touch-callout:none){
+  .note-in input,.search-bar input,.input:not(.big),.big-in input{font-size:16px}
+}
+
+/* 更新提示 / 安装引导 */
+.banner{position:absolute;left:12px;right:12px;top:calc(var(--sat) + 10px);z-index:175;display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;border-radius:18px;background:var(--text);color:var(--bg);font-size:13px;font-weight:500;box-shadow:0 14px 34px rgba(0,0,0,.2);transform:translateY(calc(-100% - 40px));transition:transform .5s var(--ease)}
+.banner.show{transform:none}
+.banner .grow{flex:1;min-width:0}
+.banner small{display:block;opacity:.65;font-size:11.5px;margin-top:2px}
+.banner button{height:32px;padding:0 12px;border-radius:10px;font-size:12.5px;font-weight:650;background:var(--bg);color:var(--text);white-space:nowrap}
+.banner button.x{background:none;color:var(--bg);opacity:.6;padding:0 6px}
+.install-steps{counter-reset:s;display:grid;gap:12px;margin-top:4px}
+.install-steps li{list-style:none;display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.6}
+.install-steps li::before{counter-increment:s;content:counter(s);flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+.install-steps .ico{width:16px;height:16px;vertical-align:-3px;color:var(--accent)}
+.kbd-ico{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--fill);vertical-align:-5px;margin:0 2px}
+.kbd-ico .ico{width:14px;height:14px}
+.offline-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-right:6px;vertical-align:1px}
+
+/* 尊重系统「减少动态效果」 */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+/* 锁屏时的弹层（忘记密码）需要显示在锁屏之上 */
+#app.locked .mask{z-index:145}
+#app.locked .sheet{z-index:150}
+/* 引导页：载入示例数据 */
+.ob-sample{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:22px;padding:12px 16px;border-radius:16px;background:var(--card);box-shadow:var(--shadow);font-size:14px;font-weight:600;color:var(--accent);text-align:left;align-self:flex-start;transition:transform .15s}
+.ob-sample:active{transform:scale(.97)}
+.ob-sample .ico{width:17px;height:17px}
+.ob-sample span{flex-basis:100%;font-size:11.5px;font-weight:450;color:var(--sub);padding-left:25px}
