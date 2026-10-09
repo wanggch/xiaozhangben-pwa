@@ -30,7 +30,7 @@ describe('预算', () => {
   it('进度、剩余、日均可用', () => {
     const b = budgetStatus(374439, 600000, 9, 31);
     expect(b.left).toBe(225561); expect(b.remainDays).toBe(23);
-    expect(b.dailyAvail).toBe(Math.floor(225561 / 23));
+    expect(b.dailyAvail).toBe(Math.round(225561 / 23));
     expect(b.level).toBe('fast');
     expect(budgetStatus(100000, 600000, 15, 30).level).toBe('ok');
     expect(budgetStatus(500000, 600000, 15, 30).level).toBe('warn');

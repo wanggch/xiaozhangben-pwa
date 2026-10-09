@@ -17,8 +17,9 @@ button,[role=button]{-webkit-user-select:none;user-select:none;-webkit-touch-cal
 #app{position:relative;width:100%;height:100vh;height:100dvh;margin:0 auto;overflow:hidden;overflow:clip;background:var(--bg);transition:background .4s;isolation:isolate;padding-left:var(--sal);padding-right:var(--sar)}
 /* 桌面宽屏：居中显示一个手机宽度的容器 */
 @media (min-width:600px){
-  body{background:#ECECE9}
-  html[data-theme="dark"] body{background:#060607}
+  html,body{background:#ECECE9}
+  body{display:flow-root}
+  html[data-theme="dark"],html[data-theme="dark"] body{background:#060607}
   #app{max-width:430px;box-shadow:0 0 0 1px rgba(0,0,0,.05),0 30px 80px -30px rgba(0,0,0,.25)}
 }
 @media (min-width:600px) and (min-height:900px){

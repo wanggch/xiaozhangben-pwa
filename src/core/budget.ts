@@ -7,7 +7,7 @@ export interface BudgetStatus { pct: number; left: Cents; remainDays: number; el
 export function budgetStatus(exp: Cents, budget: Cents, dayOfMonth: number, dim: number): BudgetStatus {
   const pct = budget ? exp / budget : 0; const left = budget - exp;
   const remainDays = dim - dayOfMonth + 1, elapsed = dayOfMonth / dim;
-  const dailyAvail = left > 0 ? Math.floor(left / remainDays) : 0;
+  const dailyAvail = left > 0 ? Math.round(left / remainDays) : 0;
   const level = !budget ? 'none' : pct > 1 ? 'over' : pct >= 0.8 ? 'warn' : pct <= elapsed ? 'ok' : 'fast';
   return { pct, left, remainDays, elapsed, dailyAvail, level };
 }
