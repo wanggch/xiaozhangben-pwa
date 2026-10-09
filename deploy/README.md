@@ -22,6 +22,23 @@
 
 不需要任何 API 密钥或其他机密：会话令牌在运行时随机生成，数据库只保存令牌的哈希。
 
+## 已有 Nginx（不装 Caddy）
+
+当服务器已经用 Nginx 占用 80/443 时：
+
+```bash
+bash deploy/release.sh --host … --domain pocket.example.com --key … \
+  --port 49222 --app-port 8788 --no-caddy --write-nginx
+# 然后单独给这个域名申请证书（不要动其他站点）：
+ssh … "certbot --nginx -d pocket.example.com --non-interactive --agree-tos --redirect"
+```
+
+- `--app-port`：Node 只监听本机该端口（默认 8787；若已被占用请换）
+- `--no-caddy`：不安装、不配置 Caddy，也不改防火墙
+- `--write-nginx`：写入 `/etc/nginx/sites-available/<域名>`（HTTP 反代模板）并 reload；证书交给 certbot
+- `--node-bin`：指定 node；默认优先 `/opt/xiaozhangben/node/bin/node`，再退回系统 PATH 中 ≥22.12 的 node。**不会**安装 NodeSource，也**不会**改/覆盖系统已有的 Node
+- 安全头由应用设置；Nginx 模板不重复加 HSTS/CSP
+
 ## 方式 A：系统服务
 
 ### 首次上线

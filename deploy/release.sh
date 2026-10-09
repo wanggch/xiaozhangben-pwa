@@ -2,12 +2,16 @@
 # 本地一键发布：打包 → 上传到服务器 → 远程执行 install.sh（首次安装与升级都用它）
 # 用法：
 #   bash deploy/release.sh --host 1.2.3.4 --domain ledger.example.com --key ~/.ssh/id_ed25519 [--user root] [--port 22]
-#                         [--acme-email you@example.com] [--tls auto|internal|off] [--package 已有包.tar.gz] [--dry-run]
+#                         [--app-port 8787] [--acme-email you@example.com] [--tls auto|internal|off]
+#                         [--no-caddy] [--write-nginx] [--node-bin /path/to/node] [--skip-apt]
+#                         [--package 已有包.tar.gz] [--dry-run]
 # 说明：
-#   --user 非 root 时远程用 sudo（需要该用户有 sudo 权限，会在终端提示输入 sudo 密码）
+#   --port 是 SSH 端口；Node 监听端口用 --app-port（传给 install.sh --port）
+#   --user 非 root 时远程用 sudo（需要该用户有 sudo 权限）
 #   --dry-run 只打包并打印将要执行的命令，不连接服务器
 set -Eeuo pipefail
-HOST=""; SSH_USER=root; DOMAIN=""; KEY=""; PORT=22; ACME_EMAIL=""; TLS=auto; PKG=""; DRY=0
+HOST=""; SSH_USER=root; DOMAIN=""; KEY=""; PORT=22; APP_PORT=""; ACME_EMAIL=""; TLS=auto
+PKG=""; DRY=0; NO_CADDY=0; WRITE_NGINX=0; SKIP_APT=0; NODE_BIN=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --host) HOST="$2"; shift 2 ;;
@@ -15,11 +19,16 @@ while [[ $# -gt 0 ]]; do
     --domain) DOMAIN="$2"; shift 2 ;;
     --key) KEY="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
+    --app-port) APP_PORT="$2"; shift 2 ;;
     --acme-email) ACME_EMAIL="$2"; shift 2 ;;
     --tls) TLS="$2"; shift 2 ;;
+    --node-bin) NODE_BIN="$2"; shift 2 ;;
     --package) PKG="$2"; shift 2 ;;
+    --no-caddy) NO_CADDY=1; shift ;;
+    --write-nginx) WRITE_NGINX=1; shift ;;
+    --skip-apt) SKIP_APT=1; shift ;;
     --dry-run) DRY=1; shift ;;
-    -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
     *) echo "未知参数：$1" >&2; exit 2 ;;
   esac
 done
@@ -37,7 +46,13 @@ TARGET="$SSH_USER@$HOST"
 SUDO=""; [[ $SSH_USER == root ]] || SUDO="sudo"
 REMOTE_DIR="/tmp/xzb-release"
 q() { printf '%q ' "$@"; }
-INSTALL_ARGS=(--domain "$DOMAIN" --tls "$TLS"); [[ -n $ACME_EMAIL ]] && INSTALL_ARGS+=(--acme-email "$ACME_EMAIL")
+INSTALL_ARGS=(--domain "$DOMAIN" --tls "$TLS")
+[[ -n $ACME_EMAIL ]] && INSTALL_ARGS+=(--acme-email "$ACME_EMAIL")
+[[ -n $APP_PORT ]] && INSTALL_ARGS+=(--port "$APP_PORT")
+[[ -n $NODE_BIN ]] && INSTALL_ARGS+=(--node-bin "$NODE_BIN")
+[[ $NO_CADDY -eq 1 ]] && INSTALL_ARGS+=(--no-caddy)
+[[ $WRITE_NGINX -eq 1 ]] && INSTALL_ARGS+=(--write-nginx)
+[[ $SKIP_APT -eq 1 ]] && INSTALL_ARGS+=(--skip-apt)
 REMOTE_CMD="set -e; cd $REMOTE_DIR && rm -rf $(q "$NAME") && tar xzf $(q "$NAME.tar.gz") && $SUDO bash $(q "$NAME/deploy/install.sh") $(q "${INSTALL_ARGS[@]}"); cd / && rm -rf $REMOTE_DIR"
 
 run() { if [[ $DRY -eq 1 ]]; then echo "+ $(q "$@")"; else "$@"; fi; }

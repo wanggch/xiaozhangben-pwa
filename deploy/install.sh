@@ -5,13 +5,16 @@
 #   sudo bash deploy/install.sh --domain ledger.example.com [--acme-email you@example.com]
 # 选项：
 #   --domain D        站点域名（首次安装必填；之后会记住，可省略）
-#   --acme-email E    证书账户邮箱（可选，用于证书到期提醒）
-#   --tls MODE        auto（默认，公网证书）| internal（Caddy 自签，测试用）| off（仅 HTTP，测试用）
+#   --acme-email E    证书账户邮箱（可选，仅 Caddy 模式使用）
+#   --tls MODE        auto（默认，HTTPS）| internal（Caddy 自签）| off（仅 HTTP）
 #   --port P          Node 监听端口（仅本机 127.0.0.1，默认 8787）
-#   --no-caddy        不安装/配置 Caddy（自己用 Nginx 等反代时）
-#   --skip-apt        跳过 apt 安装（已手动装好 Node 22 / Caddy 时）
-# 目录：程序 /opt/xiaozhangben/releases/<版本>（current 软链接指向当前版本），
-#       数据 /var/lib/xiaozhangben（数据库与 backups/），配置 /etc/xiaozhangben/env
+#   --node-bin PATH   指定 node 可执行文件（默认：/opt/xiaozhangben/node/bin/node，再退回 PATH）
+#   --no-caddy        不安装/配置 Caddy（已有 Nginx 等反代时必用）
+#   --write-nginx     写入 /etc/nginx/sites-available/<域名>（HTTP 模板；证书交给 certbot）
+#   --skip-apt        跳过 apt 安装（已有编译工具与 Node 时）
+# 目录：程序 /opt/xiaozhangben/releases/<版本>（current 软链接），
+#       数据 /var/lib/xiaozhangben，配置 /etc/xiaozhangben/env
+# 不会：apt upgrade、改防火墙、卸载/覆盖系统已有的 Node、碰其他站点配置。
 set -Eeuo pipefail
 
 APP=xiaozhangben
@@ -22,16 +25,18 @@ ETC=/etc/$APP
 ENV_FILE=$ETC/env
 KEEP_RELEASES=5
 
-DOMAIN=""; ACME_EMAIL=""; TLS=auto; PORT=""; NO_CADDY=0; SKIP_APT=0
+DOMAIN=""; ACME_EMAIL=""; TLS=auto; PORT=""; NODE_BIN_OPT=""; NO_CADDY=0; WRITE_NGINX=0; SKIP_APT=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --domain) DOMAIN="$2"; shift 2 ;;
     --acme-email) ACME_EMAIL="$2"; shift 2 ;;
     --tls) TLS="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
+    --node-bin) NODE_BIN_OPT="$2"; shift 2 ;;
     --no-caddy) NO_CADDY=1; shift ;;
+    --write-nginx) WRITE_NGINX=1; shift ;;
     --skip-apt) SKIP_APT=1; shift ;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "未知参数：$1" >&2; exit 2 ;;
   esac
 done
@@ -56,40 +61,63 @@ case "$OS" in
 esac
 command -v apt-get >/dev/null || die "需要 apt（Ubuntu / Debian）"
 
-# 读取已有配置（升级时沿用）
 getenv() { [[ -f $ENV_FILE ]] && sed -n "s/^$1=//p" "$ENV_FILE" | tail -1 || true; }
 [[ -n $DOMAIN ]] || DOMAIN="$(getenv XZB_DOMAIN)"
 [[ -n $PORT ]] || PORT="$(getenv PORT)"; PORT="${PORT:-8787}"
 [[ -n $DOMAIN ]] || die "首次安装请提供 --domain"
 [[ $DOMAIN =~ ^[A-Za-z0-9.-]+$ ]] || die "域名格式不正确：$DOMAIN"
-if [[ $TLS == auto ]]; then SCHEME=https; elif [[ $TLS == internal ]]; then SCHEME=https; else SCHEME=http; fi
+[[ $PORT =~ ^[0-9]+$ && $PORT -ge 1 && $PORT -le 65535 ]] || die "端口不正确：$PORT"
+if command -v ss >/dev/null && ss -ltn "( sport = :$PORT )" 2>/dev/null | grep -q LISTEN; then
+  # 允许本服务已在跑（升级时）
+  if ! curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then
+    die "端口 $PORT 已被其他进程占用，请换 --port"
+  fi
+fi
+if [[ $TLS == off ]]; then SCHEME=http; else SCHEME=https; fi
 
-# ---- 1. 系统依赖：Node 22（NodeSource）、Caddy（官方仓库） ----
-node_ok() { command -v node >/dev/null && node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=12)?0:1)'; }
+# ---- 1. 系统依赖（不 apt upgrade；不覆盖系统 Node） ----
+node_version_ok() {
+  local bin="$1"
+  [[ -x $bin ]] || return 1
+  "$bin" -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=12)?0:1)' 2>/dev/null
+}
+pick_node() {
+  local cand
+  for cand in "$NODE_BIN_OPT" "$OPT/node/bin/node" "$(command -v node 2>/dev/null || true)"; do
+    [[ -n ${cand:-} ]] || continue
+    if node_version_ok "$cand"; then echo "$cand"; return 0; fi
+  done
+  return 1
+}
 if [[ $SKIP_APT -eq 0 ]]; then
   export DEBIAN_FRONTEND=noninteractive
-  log "安装基础软件包"
+  log "安装基础软件包（不升级系统）"
   apt-get update -qq
-  # python3/make/g++：better-sqlite3 在安装时本地编译
-  apt-get install -y -qq ca-certificates curl gnupg rsync sqlite3 python3 make g++ >/dev/null
-  install -d -m 0755 /etc/apt/keyrings
-  if ! node_ok; then
-    log "安装 Node.js 22（NodeSource）"
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
-    apt-get update -qq && apt-get install -y -qq nodejs >/dev/null
+  # python3/make/g++：better-sqlite3 本地编译；不装 nodesource / 不碰已有 node
+  apt-get install -y -qq --no-install-recommends ca-certificates curl gnupg rsync sqlite3 python3 make g++ >/dev/null
+  if ! pick_node >/dev/null; then
+    log "未找到可用 Node ≥ 22.12，安装私有 Node 22 到 $OPT/node（不改系统 PATH）"
+    ARCH="$(uname -m)"; case "$ARCH" in x86_64) NARCH=x64 ;; aarch64|arm64) NARCH=arm64 ;; *) die "不支持的架构 $ARCH" ;; esac
+    VER=22.20.0
+    command -v xz >/dev/null || apt-get install -y -qq --no-install-recommends xz-utils >/dev/null
+    TMPN="$(mktemp -d)"; curl -fsSL "https://nodejs.org/dist/v$VER/node-v$VER-linux-$NARCH.tar.xz" -o "$TMPN/node.tar.xz"
+    tar -xJf "$TMPN/node.tar.xz" -C "$TMPN"
+    rm -rf "$OPT/node"; mv "$TMPN"/node-v$VER-linux-$NARCH "$OPT/node"
+    rm -rf "$TMPN"
   fi
   if [[ $NO_CADDY -eq 0 ]] && ! command -v caddy >/dev/null; then
     log "安装 Caddy（官方 apt 仓库）"
-    apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https >/dev/null || true
+    install -d -m 0755 /etc/apt/keyrings /usr/share/keyrings
+    apt-get install -y -qq --no-install-recommends debian-keyring debian-archive-keyring apt-transport-https >/dev/null || true
     curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
     curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list
     apt-get update -qq && apt-get install -y -qq caddy >/dev/null
   fi
 fi
-node_ok || die "需要 Node.js ≥ 22.12（当前：$(node -v 2>/dev/null || echo 未安装)）"
-NODE_BIN="$(command -v node)"; NPM_BIN="$(command -v npm)"
-[[ $NODE_BIN == /usr/bin/node ]] || { warn "node 不在 /usr/bin/node，建立软链接"; ln -sf "$NODE_BIN" /usr/bin/node; }
+NODE_BIN="$(pick_node)" || die "需要 Node.js ≥ 22.12（可用 --node-bin 或把二进制放到 $OPT/node）"
+NPM_BIN="$(dirname "$NODE_BIN")/npm"
+[[ -x $NPM_BIN ]] || NPM_BIN="$(command -v npm)" || die "找不到与 node 配套的 npm"
+log "使用 Node：$NODE_BIN ($("$NODE_BIN" -v))"
 
 # ---- 2. 系统用户与目录 ----
 if ! id -u "$APP_USER" >/dev/null 2>&1; then
@@ -117,10 +145,16 @@ TRUST_PROXY=loopback
 SESSION_DAYS=30
 SESSION_MAX_DAYS=180
 LOG_LEVEL=info
+NODE_BIN=$NODE_BIN
 CONF
 else
-  # 升级：只同步域名相关的两项，其余保留
-  sed -i -e "s|^XZB_DOMAIN=.*|XZB_DOMAIN=$DOMAIN|" -e "s|^PUBLIC_ORIGIN=.*|PUBLIC_ORIGIN=$SCHEME://$DOMAIN|" -e "s|^PORT=.*|PORT=$PORT|" "$ENV_FILE"
+  # 升级：同步域名 / 端口 / PUBLIC_ORIGIN / NODE_BIN，其余保留
+  grep -q '^NODE_BIN=' "$ENV_FILE" || echo "NODE_BIN=$NODE_BIN" >> "$ENV_FILE"
+  sed -i -e "s|^XZB_DOMAIN=.*|XZB_DOMAIN=$DOMAIN|" \
+         -e "s|^PUBLIC_ORIGIN=.*|PUBLIC_ORIGIN=$SCHEME://$DOMAIN|" \
+         -e "s|^PORT=.*|PORT=$PORT|" \
+         -e "s|^NODE_BIN=.*|NODE_BIN=$NODE_BIN|" \
+         "$ENV_FILE"
 fi
 chown root:"$APP_USER" "$ENV_FILE"; chmod 0640 "$ENV_FILE"
 
@@ -137,7 +171,6 @@ rm -rf "$DEST"; mv "$TMP" "$DEST"
 
 run_cli() { ( umask 0027; set -a; . "$ENV_FILE"; set +a; cd "$1/server" && runuser -u "$APP_USER" -- "$NODE_BIN" dist/cli.js "${@:2}" ); }
 
-# 升级前备份 + 迁移
 if [[ -f $DATA/$APP.db ]]; then
   log "升级前备份数据库"
   run_cli "$DEST" backup --dir "$DATA/backups" --keep-days 14
@@ -145,19 +178,22 @@ fi
 log "数据库迁移"
 run_cli "$DEST" migrate
 
-# 切换 current（原子操作），记住上一个版本用于回滚
 PREV="$(readlink -f "$OPT/current" 2>/dev/null || true)"
 ln -sfn "$DEST" "$OPT/current.new" && mv -Tf "$OPT/current.new" "$OPT/current"
 
 # ---- 5. CLI 包装、systemd 服务与备份定时器 ----
-install -m 0755 "$DEST/deploy/xiaozhangben-cli" /usr/local/bin/xiaozhangben-cli
+# CLI / 服务单元都使用 env 里的 NODE_BIN，不硬编码 /usr/bin/node，也不改系统 PATH
+sed "s|@NODE_BIN@|$NODE_BIN|g" "$DEST/deploy/xiaozhangben-cli" > /usr/local/bin/xiaozhangben-cli
+chmod 0755 /usr/local/bin/xiaozhangben-cli
 
 health() {
   for _ in $(seq 1 30); do curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1 && return 0; sleep 1; done; return 1
 }
 if [[ $HAS_SYSTEMD -eq 1 ]]; then
   log "安装 systemd 服务与每日备份定时器"
-  install -m 0644 "$DEST"/deploy/systemd/xiaozhangben.service "$DEST"/deploy/systemd/xiaozhangben-backup.service "$DEST"/deploy/systemd/xiaozhangben-backup.timer /etc/systemd/system/
+  sed "s|@NODE_BIN@|$NODE_BIN|g" "$DEST/deploy/systemd/xiaozhangben.service" > /etc/systemd/system/xiaozhangben.service
+  sed "s|@NODE_BIN@|$NODE_BIN|g" "$DEST/deploy/systemd/xiaozhangben-backup.service" > /etc/systemd/system/xiaozhangben-backup.service
+  install -m 0644 "$DEST/deploy/systemd/xiaozhangben-backup.timer" /etc/systemd/system/
   systemctl daemon-reload
   systemctl enable --quiet xiaozhangben.service xiaozhangben-backup.timer
   systemctl restart xiaozhangben.service
@@ -178,7 +214,7 @@ if ! health; then
 fi
 log "服务已在 127.0.0.1:$PORT 运行"
 
-# ---- 6. Caddy ----
+# ---- 6. 反代：Caddy 或写出 Nginx 模板 ----
 if [[ $NO_CADDY -eq 0 ]]; then
   command -v caddy >/dev/null || die "未安装 Caddy（或使用 --no-caddy）"
   log "配置 Caddy（$SCHEME://$DOMAIN，TLS=$TLS）"
@@ -205,9 +241,23 @@ if [[ $NO_CADDY -eq 0 ]]; then
   else
     caddy reload --config "$MAIN" --adapter caddyfile >/dev/null 2>&1 || (cd /etc/caddy && nohup caddy run --config "$MAIN" --adapter caddyfile >>/var/log/caddy-$APP.log 2>&1 &)
   fi
-  if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q 'Status: active'; then
-    log "ufw 已启用：放行 80/443"; ufw allow 80/tcp >/dev/null; ufw allow 443/tcp >/dev/null; ufw allow 443/udp >/dev/null
+elif [[ $WRITE_NGINX -eq 1 ]]; then
+  command -v nginx >/dev/null || die "--write-nginx 需要已安装 nginx"
+  NGINX_AVAIL=/etc/nginx/sites-available/$DOMAIN
+  NGINX_EN=/etc/nginx/sites-enabled/$DOMAIN
+  if [[ -f $NGINX_AVAIL ]] && grep -q 'ssl_certificate' "$NGINX_AVAIL"; then
+    log "Nginx 站点已有证书配置，只更新反代端口（不改证书段）"
+    # 已由 certbot 管理时，只把 proxy_pass 端口改成当前 PORT
+    sed -i -E "s|proxy_pass http://127\\.0\\.0\\.1:[0-9]+;|proxy_pass http://127.0.0.1:$PORT;|" "$NGINX_AVAIL"
+  else
+    log "写入 Nginx 站点 $NGINX_AVAIL（HTTP；证书请用 certbot --nginx）"
+    sed -e "s/DOMAIN/$DOMAIN/g" -e "s/UPSTREAM_PORT/$PORT/g" \
+      "$DEST/deploy/nginx-site.conf.example" > "$NGINX_AVAIL"
   fi
+  ln -sfn "$NGINX_AVAIL" "$NGINX_EN"
+  nginx -t
+  systemctl reload nginx
+  log "Nginx 已 reload。若尚未有证书：certbot --nginx -d $DOMAIN --non-interactive --agree-tos --redirect"
 fi
 
 # ---- 7. 清理旧版本 ----

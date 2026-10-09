@@ -22,7 +22,7 @@ rm -rf "$ROOT/release/pkg"; mkdir -p "$STAGE/server"
 cp -a dist "$STAGE/dist"
 cp -a server/dist server/package.json server/package-lock.json "$STAGE/server/"
 mkdir -p "$STAGE/deploy"
-cp -a deploy/install.sh deploy/Caddyfile deploy/xiaozhangben-cli deploy/systemd "$STAGE/deploy/"
+cp -a deploy/install.sh deploy/Caddyfile deploy/xiaozhangben-cli deploy/systemd deploy/nginx-site.conf.example "$STAGE/deploy/"
 cp -a .env.example "$STAGE/"
 echo "$VER" > "$STAGE/VERSION"
 find "$STAGE" \( -name '*.map' -o -name '.env' -o -name '*.db' -o -name '*.db-*' \) -delete

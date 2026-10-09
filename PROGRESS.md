@@ -51,3 +51,8 @@
 ## 下一步
 - 拿到服务器信息后按 deploy/README.md 上线
 - 真机（iPhone Safari / Android Chrome）验收安装、登录与同步
+
+## M12 生产部署适配（Nginx 共存 / 现有 Node）
+- install.sh：`--node-bin`、私有 Node 回退、`--write-nginx`、`--no-caddy`；systemd/CLI 使用实际 NODE_BIN，不覆盖系统 Node、不改防火墙
+- release.sh：`--app-port` / `--no-caddy` / `--write-nginx` / `--node-bin` / `--skip-apt`
+- `deploy/nginx-site.conf.example`：反代模板（证书交给 certbot）

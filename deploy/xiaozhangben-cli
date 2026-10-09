@@ -5,5 +5,7 @@ set -euo pipefail
 if [[ $EUID -ne 0 ]]; then exec sudo "$0" "$@"; fi
 umask 0027
 set -a; . /etc/xiaozhangben/env; set +a
+# @NODE_BIN@ 由 install.sh 替换；若 env 里有 NODE_BIN 则优先用 env
+NODE="${NODE_BIN:-@NODE_BIN@}"
 cd /opt/xiaozhangben/current/server
-exec runuser -u xiaozhangben -- /usr/bin/node dist/cli.js "$@"
+exec runuser -u xiaozhangben -- "$NODE" dist/cli.js "$@"

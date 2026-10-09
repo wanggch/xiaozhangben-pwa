@@ -11,7 +11,8 @@ Group=xiaozhangben
 EnvironmentFile=/etc/xiaozhangben/env
 Environment=NODE_ENV=production
 WorkingDirectory=/opt/xiaozhangben/current/server
-ExecStart=/usr/bin/node /opt/xiaozhangben/current/server/dist/index.js
+# @NODE_BIN@ 由 install.sh 替换为实际 node 路径（系统 Node 或 /opt/xiaozhangben/node）
+ExecStart=@NODE_BIN@ /opt/xiaozhangben/current/server/dist/index.js
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=15
