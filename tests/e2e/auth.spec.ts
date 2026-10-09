@@ -25,6 +25,16 @@ test.describe('访问控制', () => {
     await page.fill('#email', u.email); await page.fill('#password', 'wrong password');
     await page.click('#submit');
     await expect(page.locator('#err')).toHaveText('邮箱或密码错误');
+    await expect(page.locator('#password')).toHaveAttribute('aria-invalid', '');
+    await expect(page.locator('#submit')).toBeEnabled();
+    await expect(page.locator('#submit')).toHaveText(/登录/);
+    // 显示 / 隐藏密码
+    await page.fill('#password', 'abc');
+    await page.click('.eye');
+    await expect(page.locator('#password')).toHaveAttribute('type', 'text');
+    await expect(page.locator('.eye')).toHaveAttribute('aria-pressed', 'true');
+    await page.click('.eye');
+    await expect(page.locator('#password')).toHaveAttribute('type', 'password');
     await uiLogin(page, u.email);
     await passOnboarding(page);
     const c = (await context.cookies()).find(c => c.name === '__Host-xzb_sid')!;
