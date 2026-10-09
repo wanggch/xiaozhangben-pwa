@@ -1,16 +1,31 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// 部署路径：默认 /（本地开发、Vercel / Netlify / Cloudflare Pages）
-// GitHub Pages 子路径：npm run build:pages（= --mode pages → /xiaozhangben-pwa/），或 BASE=/仓库名/ npm run build
-export default defineConfig(({ mode }) => {
-const raw = process.env.BASE || (mode === 'pages' ? '/xiaozhangben-pwa/' : '/');
-const base = ('/' + raw + '/').replace(/\/+/g, '/');
+// 前端与后端同域部署（后端 Node 服务提供静态文件与 /api），路径固定为 /
+// 本地开发：npm run dev（Vite，/api 代理到 http://127.0.0.1:8787 的后端）
+const base = '/';
+const API = process.env.API_URL || 'http://127.0.0.1:8787';
 
+export default defineConfig(() => {
 return {
   base,
-  build: { target: 'es2020', cssCodeSplit: false, assetsInlineLimit: 0, sourcemap: false },
+  build: {
+    target: 'es2020', cssCodeSplit: true, assetsInlineLimit: 0, sourcemap: false, modulePreload: { polyfill: false },
+    rollupOptions: {
+      input: { index: 'index.html', login: 'login.html' },
+      output: {
+        // 登录页的脚本与样式放在公开目录 pub/，App 的 assets/ 需要登录才能访问
+        entryFileNames: c => c.name === 'login' ? 'pub/[name]-[hash].js' : 'assets/[name]-[hash].js',
+        assetFileNames: a => (a.names ?? []).some(n => n.startsWith('login')) ? 'pub/[name]-[hash][extname]' : 'assets/[name]-[hash][extname]',
+      },
+    },
+  },
+  server: { proxy: { '/api': { target: API, changeOrigin: false } } },
   plugins: [
+    {
+      name: 'login-route', // 开发时 /login → login.html（生产环境由后端处理）
+      configureServer(server) { server.middlewares.use((req, _res, next) => { if (req.url === '/login' || req.url?.startsWith('/login?')) req.url = req.url.replace('/login', '/login.html'); next(); }); },
+    },
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
@@ -46,8 +61,10 @@ return {
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
-        globIgnores: ['screenshots/**', 'icons/icon-1024.png'],
+        globIgnores: ['screenshots/**', 'icons/icon-1024.png', 'login.html', 'pub/**'],
         navigateFallback: 'index.html',
+        // 登录页与 API 永远走网络
+        navigateFallbackDenylist: [/^\/login/, /^\/api\//],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
       },

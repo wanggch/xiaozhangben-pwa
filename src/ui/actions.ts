@@ -102,7 +102,7 @@ Object.assign(ACT, {
   import: () => $<HTMLInputElement>('#fileIn').click(),
   clearSample: () => confirmSheet('清除示例数据？', '将删除所有标记为「示例」的账单、账户、周期账单和账本，你自己记录的不受影响。', '清除', sampleClear),
   loadSample: sampleLoad,
-  clearAll: () => confirmSheet('清空全部数据？', '账单、账户、周期账单、分类与账本都会恢复为空白状态，设置会保留。可以在提示中撤销。', '全部清空', () => withUndo('已清空全部数据', () => { replaceState(clearedState(S)); })),
+  clearAll: () => confirmSheet('清空全部数据？', '账单、账户、周期账单、分类与账本都会恢复为空白状态，同步后云端也会一并清空；设置会保留。可以在提示中撤销。', '全部清空', () => withUndo('已清空全部数据', () => { replaceState(clearedState(S)); })),
   onboard: () => showOnboarding(),
   install: async () => {
     if (canPrompt()) { const ok = await promptInstall(); if (ok) { dismissInstallTip(); toast('已添加到主屏幕'); } refresh(); }

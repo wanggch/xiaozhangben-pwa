@@ -1,0 +1,23 @@
+:root{--bg:#F6F6F4;--card:#FFFFFF;--fill:#F1F1EF;--text:#16161A;--sub:#6F6F76;--line:rgba(0,0,0,.08);--accent:#5B5BD6;--accent-soft:rgba(91,91,214,.14);--danger:#E5484D;
+  --font:"Inter","SF Pro Text",-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif}
+html[data-theme="dark"]{--bg:#0B0B0D;--card:#151518;--fill:#1D1D21;--text:#F2F2F4;--sub:#8A8A93;--line:rgba(255,255,255,.09);--accent:#7C7CF0;--accent-soft:rgba(124,124,240,.18);color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg)}
+body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;touch-action:manipulation}
+.login{max-width:380px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:calc(env(safe-area-inset-top) + 40px) 28px calc(env(safe-area-inset-bottom) + 32px);animation:in .5s cubic-bezier(.2,.8,.2,1)}
+@keyframes in{from{opacity:0;transform:translateY(10px)}}
+.logo{width:72px;height:72px;border-radius:20px;box-shadow:0 12px 30px -12px rgba(79,79,203,.55)}
+h1{font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:22px}
+.sub{color:var(--sub);font-size:14px;margin-top:6px}
+.notice{margin-top:18px;font-size:13px;padding:11px 14px;border-radius:12px;background:var(--accent-soft);color:var(--text)}
+form{margin-top:26px;display:flex;flex-direction:column;gap:14px}
+.field span{display:block;font-size:12px;color:var(--sub);margin:0 2px 8px;font-weight:500}
+input{width:100%;height:50px;border-radius:14px;background:var(--card);border:1px solid var(--line);padding:0 14px;font:inherit;font-size:16px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.err{color:var(--danger);font-size:13px;margin:0 2px}
+.btn{height:50px;border:0;border-radius:15px;background:var(--text);color:var(--bg);font:inherit;font-size:15px;font-weight:600;margin-top:8px;cursor:pointer;transition:transform .15s,opacity .2s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.55;cursor:default}
+.link{margin-top:18px;background:none;border:0;color:var(--accent);font:inherit;font-size:14px;cursor:pointer;align-self:center;padding:8px}
+.foot{margin-top:auto;padding-top:40px;text-align:center;font-size:12px;line-height:1.7;color:var(--sub)}
+@media (prefers-reduced-motion:reduce){.login{animation:none}}

@@ -7,7 +7,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Account, Book, Recur, Tx } from '../core/types';
 
 export const DB_NAME = 'xiaozhangben';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 export const DATA_VERSION = 3; // 与 JSON 备份 v3 对齐（v2 = 原型 localStorage 格式，金额为元）
 
 export interface LedgerDB extends DBSchema {
@@ -16,6 +16,8 @@ export interface LedgerDB extends DBSchema {
   books: { key: string; value: Book };
   recurs: { key: string; value: Recur };
   kv: { key: string; value: { key: string; value: unknown } };
+  /** 云同步基线：每条记录最后一次与云端一致时的 JSON（k = kind:id） */
+  syncbase: { key: string; value: { k: string; j: string } };
 }
 export type DB = IDBPDatabase<LedgerDB>;
 export const COLLECTIONS = ['tx', 'accounts', 'books', 'recurs'] as const;
@@ -32,7 +34,8 @@ export function openLedgerDB(name = DB_NAME): Promise<DB> {
         db.createObjectStore('recurs', { keyPath: 'id' });
         db.createObjectStore('kv', { keyPath: 'key' });
       }
-      // if (oldVersion < 2) { ...未来的结构迁移... }
+      if (oldVersion < 2) db.createObjectStore('syncbase', { keyPath: 'k' });
+      // if (oldVersion < 3) { ...未来的结构迁移... }
     },
     blocked() { /* 旧标签页未关闭，等待即可 */ },
     // 新版本页面需要升级结构：关闭本连接让升级继续（旧页面随后会被 SW 更新提示刷新）

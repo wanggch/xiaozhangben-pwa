@@ -1,10 +1,10 @@
 /** 应用锁界面：设置 / 验证 / 解锁 */
-import { S, save, replaceState } from '../data/store';
-import { openSheet, closeSheet, refresh, toast, confirmSheet } from './app';
+import { S, save } from '../data/store';
+import { openSheet, closeSheet, toast } from './app';
+import { logout } from '../sync/session';
 import { $, $$, vibrate } from './dom';
 import { ico } from './icons';
 import { hashPin, lockoutMs, verifyPin } from '../core/pin';
-import { clearedState } from '../core/defaults';
 import type { PinHash } from '../core/types';
 
 type Mode = 'unlock' | 'set' | 'verify';
@@ -70,15 +70,13 @@ export async function lockKey(n: string) {
   }
 }
 function forgotSheet() {
-  openSheet(`<h3 tabindex="-1">忘记密码？</h3><p class="d">密码只保存在这台设备上（加盐哈希），无法找回。应用锁用于防止他人随手查看，数据本身没有加密。<br/>如果确实忘记了，只能<b>清空本机全部数据</b>并关闭应用锁后重新开始。</p>
-    <div class="btns"><button class="btn ghost" data-x>再想想</button><button class="btn danger" data-ok>清空并重置</button></div>`, b => {
+  openSheet(`<h3 tabindex="-1">忘记密码？</h3><p class="d">应用锁密码只保存在这台设备上（加盐哈希），无法找回。<br/>可以<b>退出登录并清除本机数据</b>，然后用账号重新登录，账本会从云端恢复（尚未同步的修改会丢失）。</p>
+    <div class="btns"><button class="btn ghost" data-x>再想想</button><button class="btn danger" data-ok>退出并清除</button></div>`, b => {
     $('[data-x]', b).onclick = closeSheet;
     $('[data-ok]', b).onclick = () => {
-      closeSheet();
-      setTimeout(() => confirmSheet('确定清空全部数据？', '账单、账户、账本、分类与周期账单都会被删除，且无法撤销。', '确定清空', () => {
-        const next = clearedState(S); next.settings = { ...next.settings, lock: false, pin: null };
-        replaceState(next); setFails({ n: 0, t: 0 }); hideLock(); refresh(); toast('已清空数据并关闭应用锁');
-      }), 380);
+      closeSheet(); setFails({ n: 0, t: 0 });
+      toast('正在退出登录…');
+      void logout({ force: true });
     };
   });
 }

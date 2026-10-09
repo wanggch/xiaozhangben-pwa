@@ -2,7 +2,7 @@ import { test, expect, chromium } from '@playwright/test';
 import { mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { start, keys, amountVal, watchErrors, readKV } from './helpers';
+import { start, keys, amountVal, watchErrors, readKV, createUser, apiLogin } from './helpers';
 
 test.describe('首次启动与记账', () => {
   test('空账本 + 默认分类和账户，记一笔支出（键盘算式）', async ({ page }) => {
@@ -121,6 +121,7 @@ test.describe('导航与返回键', () => {
   });
 
   test('原型录屏参数与调试接口不存在', async ({ page }) => {
+    const u = createUser(); await apiLogin(page, u.email);
     await page.goto('./?ob=0&tab=stats&theme=dark&go=budget');
     await expect(page.locator('#ob')).not.toHaveClass(/hide/);
     expect(await page.evaluate(() => 'ledger' in window || '__ledger' in window)).toBe(false);
@@ -213,26 +214,19 @@ test.describe('PWA', () => {
     // 默认测试上下文是无痕模式（Chrome 会报 in-incognito），这里用持久化上下文检查真实的可安装性
     const dir = mkdtempSync(join(tmpdir(), 'xzb-'));
     const chrome = process.env.CHROME || '/usr/bin/google-chrome';
-    const ctx = await chromium.launchPersistentContext(dir, { executablePath: existsSync(chrome) ? chrome : undefined, args: ['--no-sandbox'], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const ctx = await chromium.launchPersistentContext(dir, { baseURL, executablePath: existsSync(chrome) ? chrome : undefined, args: ['--no-sandbox'], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     try {
+      const u = createUser(); await apiLogin(ctx, u.email);
       const page = ctx.pages()[0] || await ctx.newPage();
       await page.goto(baseURL!);
       await page.evaluate(() => navigator.serviceWorker.ready);
       const manifest = await (await page.request.get(baseURL + 'manifest.webmanifest')).json();
       expect(manifest.name).toBe('小账本');
       expect(manifest.display).toBe('standalone');
+      expect(manifest.start_url).toBe('/'); expect(manifest.scope).toBe('/');
       expect(manifest.icons.some((i: any) => i.purpose === 'maskable')).toBe(true);
-      // 子路径部署：start_url / scope / id / 快捷方式都在 base 之下，图标可加载
-      const base = new URL(baseURL!).pathname;
-      expect(manifest.start_url).toBe(base); expect(manifest.scope).toBe(base); expect(manifest.id).toBe(base);
-      expect(manifest.shortcuts[0].url).toBe(base + '?action=record');
       for (const i of manifest.icons) expect((await page.request.get(new URL(i.src, baseURL + 'manifest.webmanifest').href)).status()).toBe(200);
       expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.scope)).toBe(baseURL);
-      for (const l of await page.locator('link[rel~="icon"], link[rel="apple-touch-icon"], link[rel="manifest"]').all()) {
-        const href = await l.evaluate(e => (e as HTMLLinkElement).href);
-        expect(href.startsWith(baseURL!), href).toBe(true);
-        expect((await page.request.get(href)).status(), href).toBe(200);
-      }
       const cdp = await ctx.newCDPSession(page);
       const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');
       expect(installabilityErrors).toEqual([]);

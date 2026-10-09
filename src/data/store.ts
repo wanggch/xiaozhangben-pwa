@@ -4,7 +4,7 @@
  */
 import type { State } from '../core/types';
 import { emptyState } from '../core/defaults';
-import { COLLECTIONS, DATA_VERSION, migrateData, openLedgerDB, type Collection, type DB } from './db';
+import { COLLECTIONS, DATA_VERSION, DB_NAME, migrateData, openLedgerDB, type Collection, type DB } from './db';
 
 export let S: State = emptyState();
 let db: DB | null = null;
@@ -13,6 +13,9 @@ const saved: Record<Collection, Map<string, string>> = { tx: new Map(), accounts
 const savedKV = new Map<string, string>();
 let pending = false; let flushing: Promise<void> | null = null;
 const listeners = new Set<() => void>();
+const localListeners = new Set<() => void>();
+/** 本地数据写入后回调（用于触发防抖同步） */
+export function onLocalChange(fn: () => void) { localListeners.add(fn); }
 let channel: BroadcastChannel | null = null;
 
 export const isMemoryOnly = () => memoryOnly;
@@ -60,7 +63,10 @@ export async function load(dbName?: string): Promise<{ fresh: boolean }> {
   }
   try {
     channel = new BroadcastChannel('xiaozhangben');
-    channel.onmessage = async () => { if (!db) return; S = hydrate(await readAll(db)); rememberSaved(); listeners.forEach(f => f()); };
+    channel.onmessage = async e => {
+      if (e.data === 'logout') { location.replace('/login'); return; }
+      if (!db) return; syncStateCache = undefined; S = hydrate(await readAll(db)); rememberSaved(); listeners.forEach(f => f());
+    };
   } catch { /* 不支持时忽略 */ }
   return { fresh };
 }
@@ -88,7 +94,7 @@ async function flushNow() {
     if (savedKV.get(k) !== j) { t.objectStore('kv').put({ key: k, value: JSON.parse(j) }); savedKV.set(k, j); changed++; }
   }
   await t.done;
-  if (changed) channel?.postMessage('changed');
+  if (changed) { channel?.postMessage('changed'); localListeners.forEach(f => f()); }
 }
 
 /** 等待所有写入完成（测试与导出前使用） */
@@ -100,3 +106,42 @@ export const snapshot = (): State => structuredClone(S);
 
 /** 申请持久化存储，降低被浏览器清理的风险 */
 export async function requestPersist() { try { return await navigator.storage?.persist?.(); } catch { return false; } }
+
+/* ---------- 云同步状态（不属于账本数据，不参与导入导出） ---------- */
+export interface SyncState { userId: number; email: string; cursor: number; lastSyncAt: number | null }
+let syncStateCache: SyncState | null | undefined;
+
+export async function getSyncState(): Promise<SyncState | null> {
+  if (syncStateCache !== undefined) return syncStateCache;
+  if (!db) return syncStateCache = null;
+  const r = await db.get('kv', 'sync'); return syncStateCache = (r?.value as SyncState) ?? null;
+}
+export async function setSyncState(v: SyncState | null) {
+  syncStateCache = v; if (!db) return;
+  if (v) await db.put('kv', { key: 'sync', value: v }); else await db.delete('kv', 'sync');
+}
+export async function loadSyncBase(): Promise<Map<string, string>> {
+  const m = new Map<string, string>(); if (!db) return m;
+  for (const r of await db.getAll('syncbase')) m.set(r.k, r.j);
+  return m;
+}
+/** 批量更新同步基线：值为 null 表示删除 */
+export async function writeSyncBase(updates: Map<string, string | null>, clear = false) {
+  if (!db) return;
+  const t = db.transaction('syncbase', 'readwrite');
+  if (clear) await t.store.clear();
+  for (const [k, j] of updates) { if (j === null) t.store.delete(k); else t.store.put({ k, j }); }
+  await t.done;
+}
+
+/** 退出登录 / 注销：删除本机账本数据库、本地设置、离线缓存与 Service Worker */
+export async function wipeLocal() {
+  try { channel?.postMessage('logout'); channel?.close(); } catch { /* 忽略 */ }
+  channel = null; pending = false;
+  db?.close(); db = null; syncStateCache = undefined;
+  await new Promise<void>(res => { const r = indexedDB.deleteDatabase(DB_NAME); r.onsuccess = r.onerror = r.onblocked = () => res(); });
+  try { Object.keys(localStorage).filter(k => k.startsWith('xzb-')).forEach(k => localStorage.removeItem(k)); } catch { /* 忽略 */ }
+  try { if ('caches' in self) for (const k of await caches.keys()) await caches.delete(k); } catch { /* 忽略 */ }
+  try { for (const r of (await navigator.serviceWorker?.getRegistrations?.()) ?? []) await r.unregister(); } catch { /* 忽略 */ }
+  S = emptyState();
+}

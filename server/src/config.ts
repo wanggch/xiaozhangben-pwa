@@ -15,6 +15,7 @@ export interface Config {
   trustProxy: string | boolean;
   sessionDays: number; sessionMaxDays: number;
   maxRecordsPerUser: number;
+  authRateLimit: number;
   logLevel: string;
 }
 
@@ -34,6 +35,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     sessionDays: int(env.SESSION_DAYS, 30),
     sessionMaxDays: int(env.SESSION_MAX_DAYS, 180),
     maxRecordsPerUser: int(env.MAX_RECORDS_PER_USER, 200_000),
+    authRateLimit: int(env.AUTH_RATE_LIMIT, 20),
     logLevel: env.LOG_LEVEL || 'info',
   };
 }

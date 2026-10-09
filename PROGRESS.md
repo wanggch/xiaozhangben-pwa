@@ -27,9 +27,14 @@
 - 4 位 PIN 只能防随手查看，数据未加密
 - 需要真机（iPhone Safari / Android Chrome）验证安装、全屏、安全区与手势手感
 
-## M7 GitHub Pages 部署（2026-10-09，用户已同意）
-- 子路径 /xiaozhangben-pwa/ 适配（`--mode pages` / `BASE` 环境变量），Actions 工作流自动部署
-- 线上地址：https://wanggch.github.io/xiaozhangben-pwa/
+## M7 GitHub Pages 部署（2026-10-09，用户已同意）——已撤下
+- 曾部署到 GitHub Pages 子路径；按用户要求已删除 Pages 站点、禁用工作流，子路径模式代码已移除
+
+## 阶段三：账号体系 + 云同步 + 自托管部署（2026-10-09 起）
+- [x] M8 后端：Node 22 + Fastify 5 + better-sqlite3（WAL + user_version 迁移）；邮箱密码账号（scrypt）、服务端可吊销会话（HttpOnly/Secure/SameSite=Lax）、登录限流 + 失败锁定、CSRF（Origin 校验）、zod 校验、请求体限制、安全头；增量同步 API（每用户单调 seq + 服务器时间戳 LWW + 软删除）；管理 CLI；26 个接口测试
+- [x] M9 前端：登录页（独立入口，未登录只能看到它）、启动鉴权流程、IndexedDB 同步基线 + 增量推拉引擎（启动/联网/本地改动防抖/定时/手动；Web Locks 跨标签页互斥）、首次登录「上传本机数据 / 用云端数据覆盖」、「我的 › 账号与同步」页（状态、上次同步、立即同步、改密码、下线其他设备、退出、注销）、退出清空本机数据/缓存/SW；PIN 只存本机；E2E 22 个（含 9 个鉴权/同步用例）全部通过
+- [ ] M10 部署包 deploy/（install.sh、systemd、Caddy、备份 timer、release.sh）+ Docker/compose，并在容器中实跑验证
+- [ ] M11 CI 改为只跑测试、README 更新、推送
 
 ## 下一步
 - 真机（iPhone Safari / Android Chrome）验收安装与全屏

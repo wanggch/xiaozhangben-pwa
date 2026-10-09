@@ -31,7 +31,7 @@ export function buildApp(cfg: Config, db: DB, opts: { logger?: boolean } = {}): 
   });
   const accounts = new Accounts(db, cfg);
   const sync = new Sync(db, cfg.maxRecordsPerUser);
-  const authLimiter = new RateLimiter(20, 10 * 60_000);   // 登录/注册：每 IP 10 分钟 20 次
+  const authLimiter = new RateLimiter(cfg.authRateLimit, 10 * 60_000);   // 登录/注册：每 IP 10 分钟 N 次（默认 20）
   const apiLimiter = new RateLimiter(1200, 60_000);       // 其他 API：每 IP 每分钟 1200 次
   const COOKIE = cfg.cookieSecure ? '__Host-xzb_sid' : 'xzb_sid';
   app.decorate('limiters', { authLimiter, apiLimiter });
