@@ -15,3 +15,10 @@ data/
 *.db-wal
 *.db-shm
 .e2e-data
+release/*.tar.gz
+release/pkg/
+release/qr-live.png
+release/screenshots/live-home.png
+release/screenshots/deployed-home.png
+.env.*
+!.env.example

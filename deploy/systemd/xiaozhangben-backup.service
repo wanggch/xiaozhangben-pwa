@@ -1,0 +1,20 @@
+[Unit]
+Description=小账本 SQLite 在线备份（保留 14 天）
+After=xiaozhangben.service
+
+[Service]
+Type=oneshot
+User=xiaozhangben
+Group=xiaozhangben
+EnvironmentFile=/etc/xiaozhangben/env
+WorkingDirectory=/opt/xiaozhangben/current/server
+ExecStart=/usr/bin/node /opt/xiaozhangben/current/server/dist/cli.js backup --dir /var/lib/xiaozhangben/backups --keep-days 14
+UMask=0077
+Nice=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/xiaozhangben
+PrivateTmp=yes
+PrivateDevices=yes
+CapabilityBoundingSet=

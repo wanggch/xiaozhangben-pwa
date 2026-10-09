@@ -1,0 +1,15 @@
+node_modules
+server/node_modules
+server/dist
+server/data
+dist
+dev-dist
+release
+test-results
+playwright-report
+.e2e-data
+data
+.env
+*.db
+*.db-*
+.git

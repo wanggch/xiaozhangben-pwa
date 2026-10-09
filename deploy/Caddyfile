@@ -1,0 +1,15 @@
+# 小账本 · Caddy 站点配置
+# 站点地址来自环境变量 DOMAIN：
+#   DOMAIN=ledger.example.com   → 自动申请并续期公网证书（DNS 需已指向本机，80/443 需可从公网访问）
+#   DOMAIN=localhost            → Caddy 内置 CA 自签证书（本地测试）
+#   DOMAIN=http://10.0.0.5      → 仅 HTTP（仅限测试；登录 Cookie 需要 HTTPS，见 README）
+# UPSTREAM 为 Node 服务地址：系统安装时为 127.0.0.1:8787，docker compose 中为 app:8787。
+# install.sh 会把本文件渲染后写入 /etc/caddy/conf.d/xiaozhangben.caddy。
+
+{$DOMAIN} {
+	#TLS#
+	encode zstd gzip
+	# 安全头由应用设置，这里只隐藏 Server 头
+	header -Server
+	reverse_proxy {$UPSTREAM:127.0.0.1:8787}
+}

@@ -1,0 +1,43 @@
+[Unit]
+Description=小账本 (xiaozhangben) Node 服务
+Documentation=https://github.com/wanggch/xiaozhangben-pwa
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=xiaozhangben
+Group=xiaozhangben
+EnvironmentFile=/etc/xiaozhangben/env
+Environment=NODE_ENV=production
+WorkingDirectory=/opt/xiaozhangben/current/server
+ExecStart=/usr/bin/node /opt/xiaozhangben/current/server/dist/index.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+UMask=0027
+
+# 加固
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/xiaozhangben
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

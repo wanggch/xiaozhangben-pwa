@@ -33,8 +33,21 @@
 ## 阶段三：账号体系 + 云同步 + 自托管部署（2026-10-09 起）
 - [x] M8 后端：Node 22 + Fastify 5 + better-sqlite3（WAL + user_version 迁移）；邮箱密码账号（scrypt）、服务端可吊销会话（HttpOnly/Secure/SameSite=Lax）、登录限流 + 失败锁定、CSRF（Origin 校验）、zod 校验、请求体限制、安全头；增量同步 API（每用户单调 seq + 服务器时间戳 LWW + 软删除）；管理 CLI；26 个接口测试
 - [x] M9 前端：登录页（独立入口，未登录只能看到它）、启动鉴权流程、IndexedDB 同步基线 + 增量推拉引擎（启动/联网/本地改动防抖/定时/手动；Web Locks 跨标签页互斥）、首次登录「上传本机数据 / 用云端数据覆盖」、「我的 › 账号与同步」页（状态、上次同步、立即同步、改密码、下线其他设备、退出、注销）、退出清空本机数据/缓存/SW；PIN 只存本机；E2E 22 个（含 9 个鉴权/同步用例）全部通过
-- [ ] M10 部署包 deploy/（install.sh、systemd、Caddy、备份 timer、release.sh）+ Docker/compose，并在容器中实跑验证
-- [ ] M11 CI 改为只跑测试、README 更新、推送
+- [x] M10 部署包 deploy/：幂等 install.sh（Node 22 / Caddy / 系统用户 / 目录 / env / systemd 加固 / 每日备份 timer / CLI 包装 / 迁移前备份 / 健康检查失败自动回滚）、release.sh（本地打包 + rsync/scp + 远程安装，--dry-run）、package.sh；Dockerfile + docker-compose（app + Caddy + 备份）。实测：Ubuntu 24.04 systemd+sshd 容器中 release.sh 首装 / 升级 / 重复执行，Ubuntu 22.04 无 systemd HTTP 模式，Docker Compose（Caddy 自签证书），部署后冒烟 E2E 均通过
+- [x] M11 deploy.yml 删除，改为只跑测试的 ci.yml；README 与 deploy/README.md 重写；推送 origin main
+
+## 测试结果（2026-10-09）
+- 前端单元 38/38、后端接口 26/26、E2E 22/22（含 9 个鉴权/同步）、部署冒烟 1/1（systemd 与 compose 两种部署各跑一次）
+
+## 已知问题 / 限制（阶段三）
+- 冲突按记录级「服务器到达时间」LWW，同一笔账在两台设备离线同时修改时后同步者覆盖
+- 服务器上的删除墓碑永久保留（数据量极小）；分类排序变化会让同类型分类整体重传
+- 会话在离线期间过期时，本机数据保留到下次联网启动才跳转登录
+- 换另一个账号登录会清空本机数据（未同步的改动会丢失，退出时有提示）
+- 登录限流计数在内存中（单进程足够；重启清零），失败锁定持久化在数据库
+- better-sqlite3 需在服务器本地编译（install.sh 已自动安装编译工具）
+- 前端代码在公开仓库中本来就可见，受保护的是数据与接口
 
 ## 下一步
-- 真机（iPhone Safari / Android Chrome）验收安装与全屏
+- 拿到服务器信息后按 deploy/README.md 上线
+- 真机（iPhone Safari / Android Chrome）验收安装、登录与同步

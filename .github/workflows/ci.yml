@@ -1,0 +1,52 @@
+# 只运行测试，不部署任何东西（无 Pages、无服务器发布、不使用任何密钥）
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - name: 安装依赖
+        run: |
+          npm ci
+          npm --prefix server ci
+      - name: 前端单元测试
+        run: npm test
+      - name: 后端测试
+        run: npm --prefix server test
+      - name: 构建
+        run: |
+          npm run build
+          npm --prefix server run build
+      - name: 安装 Playwright 浏览器
+        run: npx playwright install --with-deps chromium
+      - name: E2E（本地启动后端 + 临时 SQLite）
+        run: npx playwright test
+      - name: 失败时上传测试结果
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# 小账本管理命令包装：以服务用户身份、使用 /etc/xiaozhangben/env 的配置运行 server/dist/cli.js
+# 用法：sudo xiaozhangben-cli <命令> [参数]，例如 sudo xiaozhangben-cli create-user me@example.com --admin
+set -euo pipefail
+if [[ $EUID -ne 0 ]]; then exec sudo "$0" "$@"; fi
+umask 0027
+set -a; . /etc/xiaozhangben/env; set +a
+cd /opt/xiaozhangben/current/server
+exec runuser -u xiaozhangben -- /usr/bin/node dist/cli.js "$@"
