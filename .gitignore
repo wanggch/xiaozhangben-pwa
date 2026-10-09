@@ -22,3 +22,6 @@ release/screenshots/live-home.png
 release/screenshots/deployed-home.png
 .env.*
 !.env.example
+release/qr-pocket.png
+release/screenshots/prod-*.png
+release/screenshots/prod-smoke-home.png
