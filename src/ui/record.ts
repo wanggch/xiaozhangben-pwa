@@ -3,7 +3,7 @@ import { S, save } from '../data/store';
 import { ui, cur, money, catIco, acctIco, openSheet, closeSheet, toast, refresh, popAll, push, stack, switchTab, setSegKnob, syncHistory, RENDER, setRefreshRecHook } from './app';
 import { $, $$, esc, vibrate } from './dom';
 import { ico } from './icons';
-import { balance, getAcct, getBook, getCat, monthTx, sortedAccounts, totals } from '../core/ledger';
+import { balance, defaultRecAcct, getAcct, getBook, getCat, monthTx, sortedAccounts, totals } from '../core/ledger';
 import { sumAmt } from '../core/money';
 import { curYM, dayLabel, today } from '../core/dates';
 import { centsToExpr, displayValue, evalExpr, exprLine, hasOp, press as pressKey, type Key } from '../core/expr';
@@ -90,7 +90,7 @@ export function openRec(o: { edit?: Tx; copy?: Tx; date?: string; type?: TxType;
   closeRow();
   const t = o.edit || o.copy; const T = today();
   if (t) Object.assign(rec, { evald: true, type: t.type, cat: t.cat || null, expr: centsToExpr(t.amount), date: o.copy ? T : t.date, note: t.note || '', acct: t.acct || null, toAcct: t.toAcct || null, editId: o.edit ? t.id : null, copy: !!o.copy });
-  else Object.assign(rec, { evald: false, expr: '', date: o.date || T, note: '', editId: null, copy: false, type: o.type || (rec.type === 'transfer' ? 'expense' : rec.type), acct: o.acct || (getAcct(S, S.meta.lastAcct) ? S.meta.lastAcct : sortedAccounts(S)[0]?.id || null), toAcct: null });
+  else Object.assign(rec, { evald: false, expr: '', date: o.date || T, note: '', editId: null, copy: false, type: o.type || (rec.type === 'transfer' ? 'expense' : rec.type), acct: o.acct || defaultRecAcct(S), toAcct: null });
   if (o.type === 'transfer' && o.acct) { rec.acct = o.acct; rec.toAcct = null; }
   $<HTMLInputElement>('#noteIn').value = rec.note; $<HTMLInputElement>('#dateIn').max = T;
   const R = $('#rec'); R.classList.add('open'); R.removeAttribute('inert'); R.setAttribute('aria-hidden', 'false');
@@ -110,8 +110,8 @@ export const recOpen = () => $('#rec').classList.contains('open');
 function acctPicker(field: 'acct' | 'toAcct') {
   const allowNone = rec.type !== 'transfer';
   openSheet(`<h3 tabindex="-1">${field === 'toAcct' ? '转入账户' : rec.type === 'transfer' ? '转出账户' : '选择账户'}</h3><p class="d">余额会随记账自动更新</p>
-    <div class="scroll"><div class="group">${sortedAccounts(S).map(a => `<button class="li" data-a="${esc(a.id)}" ${rec.type === 'transfer' && a.id === (field === 'acct' ? rec.toAcct : rec.acct) ? 'disabled style="opacity:.35"' : ''}>${acctIco(a)}<span class="grow">${esc(a.name)}<span class="sm">${ACCT_TYPES[a.type].name}</span></span><span class="rv num">${money(balance(S, a.id))}</span>${rec[field] === a.id ? `<span class="check">${ico('check')}</span>` : ''}</button>`).join('')}
-    ${allowNone ? `<button class="li" data-a=""><span class="cat-ico sh0">${ico('x')}</span><span class="grow">不选择账户</span>${!rec[field] ? `<span class="check">${ico('check')}</span>` : ''}</button>` : ''}</div></div>
+    <div class="scroll"><div class="group">${allowNone ? `<button class="li" data-a=""><span class="cat-ico sh0">${ico('x')}</span><span class="grow">不选择账户<span class="sm">不影响任何账户余额</span></span>${!rec[field] ? `<span class="check">${ico('check')}</span>` : ''}</button>` : ''}${sortedAccounts(S).map(a => `<button class="li" data-a="${esc(a.id)}" ${rec.type === 'transfer' && a.id === (field === 'acct' ? rec.toAcct : rec.acct) ? 'disabled style="opacity:.35"' : ''}>${acctIco(a)}<span class="grow">${esc(a.name)}<span class="sm">${ACCT_TYPES[a.type].name}</span></span><span class="rv num">${money(balance(S, a.id))}</span>${rec[field] === a.id ? `<span class="check">${ico('check')}</span>` : ''}</button>`).join('')}
+    </div></div>
     <div class="btns"><button class="btn ghost" data-newacct>${ico('plus')}新增账户</button></div>`, b => {
     $$('[data-a]', b).forEach(x => x.onclick = () => { rec[field] = x.dataset.a || null; closeSheet(); renderCats(); });
     $('[data-newacct]', b).onclick = () => { closeSheet(); closeRec(); popAll(); push('acctEdit'); };

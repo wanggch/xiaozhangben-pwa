@@ -1,6 +1,6 @@
 /** 全局事件委托与动作表（对应原型的 ACT / data-* 交互） */
 import { S, save, replaceState, flush } from '../data/store';
-import { ACT, ui, switchTab, toast, openSheet, closeSheet, confirmSheet, withUndo, refresh, push, pop, top, RENDER, renderTab, setSegKnob, closeTop, sheetOpen, money } from './app';
+import { ACT, ui, switchTab, toast, openSheet, closeSheet, confirmSheet, withUndo, refresh, push, pop, top, RENDER, renderTab, setSegKnob, closeTop, sheetOpen, money, acctIco } from './app';
 import { $, $$, esc } from './dom';
 import { ico } from './icons';
 import { getAcct, getCat, sortedAccounts } from '../core/ledger';
@@ -73,7 +73,7 @@ Object.assign(ACT, {
     const id = b.dataset.id!, a = getAcct(S, id)!; const n = S.tx.filter(t => t.acct === id || t.toAcct === id).length;
     confirmSheet(`删除「${esc(a.name)}」？`, n ? `该账户有 ${n} 笔流水，删除后这些账单会保留，但不再关联账户。` : '删除后可以在提示中撤销。', '删除账户', () => {
       pop(); if (top()?.name === 'acct') pop();
-      setTimeout(() => withUndo('账户已删除', () => { S.accounts = S.accounts.filter(x => x.id !== id); S.tx.forEach(t => { if (t.acct === id) t.acct = null; if (t.toAcct === id) t.toAcct = null; }); S.recurs.forEach(r => { if (r.acct === id) r.acct = null; }); if (S.meta.lastAcct === id) S.meta.lastAcct = null; }), 200);
+      setTimeout(() => withUndo('账户已删除', () => { S.accounts = S.accounts.filter(x => x.id !== id); S.tx.forEach(t => { if (t.acct === id) t.acct = null; if (t.toAcct === id) t.toAcct = null; }); S.recurs.forEach(r => { if (r.acct === id) r.acct = null; }); if (S.meta.lastAcct === id) S.meta.lastAcct = null; if (S.settings.defaultAcct === id) S.settings.defaultAcct = null; }), 200);
     });
   },
   saveCat: () => top().save?.(),
@@ -90,6 +90,13 @@ Object.assign(ACT, {
   currency: () => openSheet(`<h3 tabindex="-1">货币符号</h3><p class="d">仅影响显示，不做汇率换算</p><div class="group">${CURRENCIES.map(([s, n]) => `<button class="li" data-cur="${esc(s)}"><span class="cat-ico sh0 num" style="font-size:13px;font-weight:600">${esc(s)}</span><span class="grow">${n}</span>${S.settings.currency === s ? `<span class="check">${ico('check')}</span>` : ''}</button>`).join('')}</div>`, sb => {
     $$('[data-cur]', sb).forEach(x => x.onclick = () => { S.settings.currency = x.dataset.cur!; save(); closeSheet(); refresh(); renderAmount(); toast(`货币符号已改为 ${esc(x.dataset.cur)}`); });
   }),
+  defaultAcct: () => {
+    const cur = getAcct(S, S.settings.defaultAcct)?.id || '';
+    const row = (id: string, icon: string, name: string, sub = '') => `<button class="li" data-da="${esc(id)}">${icon}<span class="grow">${esc(name)}${sub ? `<span class="sm">${sub}</span>` : ''}</span>${cur === id ? `<span class="check">${ico('check')}</span>` : ''}</button>`;
+    openSheet(`<h3 tabindex="-1">记账默认账户</h3><p class="d">记一笔时预先选中的账户；不选择账户的账单不影响任何账户余额</p><div class="group">${row('', `<span class="cat-ico sh0">${ico('x')}</span>`, '不选择账户', '推荐 · 需要时再选')}${sortedAccounts(S).map(a => row(a.id, acctIco(a), a.name)).join('')}</div>`, sb => {
+      $$('[data-da]', sb).forEach(x => x.onclick = () => { S.settings.defaultAcct = x.dataset.da || null; save(); closeSheet(); refresh(); toast(S.settings.defaultAcct ? `记账默认账户：${esc(getAcct(S, S.settings.defaultAcct)!.name)}` : '记账默认不选择账户'); });
+    });
+  },
   toggleRemind: () => { S.settings.remind = !S.settings.remind; S.meta.lastRemindDate = undefined; save(); refresh(); checkReminder(); toast(S.settings.remind ? `已开启 · 每天 ${S.settings.remindTime} 后打开 App 时提醒` : '已关闭每日提醒'); },
   toggleLock: () => {
     if (!S.settings.lock) showLock('set', h => { if (!h) return; persistLock(h); refresh(); toast('应用锁已开启'); });

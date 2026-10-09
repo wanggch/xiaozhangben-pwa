@@ -56,7 +56,8 @@ export function applyRemote(S: State, c: RemoteChange) {
 export function repairState(S: State, fallbackBook: () => State['books'][number]) {
   if (!S.books.length) S.books.push(fallbackBook());
   if (!S.books.some(b => b.id === S.meta.curBook)) S.meta.curBook = [...S.books].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0].id;
-  if (S.meta.lastAcct && !S.accounts.some(a => a.id === S.meta.lastAcct)) S.meta.lastAcct = S.accounts[0]?.id ?? null;
+  if (S.meta.lastAcct && !S.accounts.some(a => a.id === S.meta.lastAcct)) S.meta.lastAcct = null;
+  if (S.settings.defaultAcct && !S.accounts.some(a => a.id === S.settings.defaultAcct)) S.settings.defaultAcct = null;
 }
 
 /** 本机是否有「用户数据」（区别于首次启动的默认账本） */

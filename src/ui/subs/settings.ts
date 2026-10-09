@@ -4,7 +4,7 @@ import { SUB, segHTML, toast, renderSub, top } from '../app';
 import { $, esc } from '../dom';
 import { ico } from '../icons';
 import { CURRENCIES } from '../../core/constants';
-import { hasSample } from '../../core/ledger';
+import { getAcct, hasSample } from '../../core/ledger';
 import { applyTheme } from '../theme';
 import { checkReminder } from '../reminder';
 import { APP_VERSION } from '../../version';
@@ -18,6 +18,7 @@ SUB.settings = () => {
     <div class="group-t" style="margin-top:8px"><span>通用</span></div>
     <div class="group">
       ${li('globe', '货币符号', `${esc(st.currency)} ${esc((CURRENCIES.find(c => c[0] === st.currency) || ['', '自定义'])[1])}${ico('right')}`, 'data-act="currency"')}
+      ${li('wallet', '记账默认账户', `${esc(getAcct(S, st.defaultAcct)?.name || '不选择')}${ico('right')}`, 'data-act="defaultAcct"')}
       <div class="li">${ico('calendar')}<span class="grow">每周第一天</span>${segHTML('weekStart', [[1, '周一'], [0, '周日']], st.weekStart, 'sm', '每周第一天')}</div>
       <div class="li">${ico('moon')}<span class="grow">外观</span>${segHTML('theme', [['auto', '自动'], ['light', '浅色'], ['dark', '深色']], st.theme, 'sm', '外观')}</div>
     </div>

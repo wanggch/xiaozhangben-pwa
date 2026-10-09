@@ -45,4 +45,15 @@ describe('同步记录映射', () => {
     const U = emptyState(); U.accounts[0].name = '工资卡';
     expect(hasUserData(U, emptyState())).toBe(true);
   });
+
+  it('默认账户随 settings 同步（可为 null），指向已删除账户时被修复为不选', () => {
+    const S = emptyState();
+    applyRemote(S, { kind: 'settings', id: 'settings', deleted: false, data: { ...S.settings, defaultAcct: 'a-cash' }, updatedAt: 4, seq: 4 });
+    expect(S.settings.defaultAcct).toBe('a-cash');
+    S.accounts = S.accounts.filter(a => a.id !== 'a-cash');
+    repairState(S, defaultBook);
+    expect(S.settings.defaultAcct).toBeNull();
+    const rec = [...toRecords(S).values()].find(r => r.kind === 'settings')!;
+    expect((rec.data as any).defaultAcct).toBeNull();
+  });
 });

@@ -14,6 +14,8 @@ export const getCat = (S: State, id: string | null): CatWithType => allCats(S).f
 export const getAcct = (S: State, id: string | null | undefined): Account | undefined => id ? S.accounts.find(a => a.id === id) : undefined;
 export const acctName = (S: State, id: string | null | undefined) => getAcct(S, id)?.name || '无账户';
 export const sortedAccounts = (S: State) => [...S.accounts].sort((a, b) => a.order - b.order);
+/** 记一笔的默认账户：设置中指定且仍存在的账户，否则不选择账户（null，不影响任何余额） */
+export const defaultRecAcct = (S: State): string | null => { const id = S.settings.defaultAcct; return id && getAcct(S, id) ? id : null; };
 
 /** 余额 = 初始余额 (+示例期初) + 收入 − 支出 ± 转账，统计全部账本 */
 export function balance(S: State, id: string): Cents {

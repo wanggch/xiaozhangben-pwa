@@ -47,10 +47,13 @@ test.describe('首次启动与记账', () => {
 
   test('收入、转账与账户余额', async ({ page }) => {
     await start(page);
-    // 收入 1000 到微信钱包（默认账户）
+    // 收入 1000 到微信钱包（手动选择账户）
     await page.click('#fab');
     await page.click('#recSeg [data-v="income"]');
     await page.locator('#cats .cat:not(.manage)').first().click();
+    await page.click('#acctChip');
+    await page.click('#sheet [data-a="a-wx"]');
+    await expect(page.locator('#acctChip')).toContainText('微信钱包');
     await keys(page, '1000');
     await page.click('#rec [data-k="ok"]');
     await expect(page.locator('#rec')).not.toHaveClass(/open/);
@@ -65,6 +68,44 @@ test.describe('首次启动与记账', () => {
     await expect(li('微信钱包')).toContainText('¥800.00');
     await expect(li('支付宝')).toContainText('¥200.00');
     await expect(page.locator('#p-assets .big')).toContainText('1,000', { timeout: 4000 });
+  });
+
+  test('记一笔默认不选账户，不影响余额；可在设置中指定默认账户', async ({ page }) => {
+    const errors = watchErrors(page);
+    await start(page);
+    await page.click('#fab');
+    await expect(page.locator('#acctChip')).toContainText('无账户');
+    await keys(page, '50');
+    await page.click('#rec [data-k="ok"]');
+    await expect(page.locator('#rec')).not.toHaveClass(/open/);
+    // 下一次仍默认不选（不记住上次账户）
+    await page.click('#fab');
+    await expect(page.locator('#acctChip')).toContainText('无账户');
+    await page.click('#recClose');
+    await expect(page.locator('#rec')).not.toHaveClass(/open/);
+    // 资产页所有账户余额不变
+    await page.click('.tab[data-tab="assets"]');
+    for (const n of ['微信钱包', '支付宝', '现金']) await expect(page.locator('#p-assets .li', { hasText: n })).toContainText('¥0.00');
+    // 账单详情显示「无账户」
+    await page.click('.tab[data-tab="home"]');
+    await page.locator('#p-home .tx .tx-main').first().click();
+    await expect(page.locator('.sub[data-name="detail"]')).toContainText('账户未选择');
+    await page.goBack();
+    // 设置默认账户为支付宝 → 记一笔预选支付宝
+    await page.click('.tab[data-tab="me"]');
+    await page.click('#p-me [data-go="settings"] >> nth=0');
+    await page.click('[data-act="defaultAcct"]');
+    await page.click('#sheet [data-da="a-ali"]');
+    await expect(page.locator('[data-act="defaultAcct"]')).toContainText('支付宝');
+    await page.goBack();
+    await page.click('.tab[data-tab="home"]');
+    await page.click('#fab');
+    await expect(page.locator('#acctChip')).toContainText('支付宝');
+    // 转账仍然必须选择两个账户
+    await page.click('#recSeg [data-v="transfer"]');
+    await expect(page.locator('#rec .xa')).toHaveCount(2);
+    await expect(page.locator('#sheet [data-a=""]')).toHaveCount(0);
+    expect(errors).toEqual([]);
   });
 
   test('左滑删除与撤销', async ({ page }) => {

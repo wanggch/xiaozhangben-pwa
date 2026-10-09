@@ -93,6 +93,7 @@ export function normalizeBackup(input: unknown): State {
     ...ds, currency: str(st.currency, 4) || '¥', weekStart: Number(st.weekStart) === 0 ? 0 : 1,
     theme: ['auto', 'light', 'dark'].includes(st.theme) ? st.theme : 'auto', remind: !!st.remind,
     remindTime: /^\d{2}:\d{2}$/.test(st.remindTime) ? st.remindTime : ds.remindTime,
+    defaultAcct: refAcct(st.defaultAcct),
   } as Settings;
   const m = o.meta || o;
   state.meta = {

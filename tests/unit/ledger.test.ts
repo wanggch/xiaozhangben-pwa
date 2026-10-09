@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyState } from '../../src/core/defaults';
-import { balance, netWorth, totals, flowOf } from '../../src/core/ledger';
+import { balance, netWorth, totals, flowOf, defaultRecAcct } from '../../src/core/ledger';
 import { budgetAlert, budgetStatus, quickBudgets } from '../../src/core/budget';
 import { applySamples, clearSamples } from '../../src/core/samples';
 import type { Tx } from '../../src/core/types';
@@ -70,5 +70,28 @@ describe('示例数据', () => {
     const S = emptyState(); applySamples(S, '2026-10-09');
     const b = S.books[0]; b.budget = 300000; delete b.sampleBudget;
     clearSamples(S); expect(S.books[0].budget).toBe(300000);
+  });
+});
+
+describe('记一笔默认账户', () => {
+  it('默认不选择账户；无账户账单不影响任何余额与净资产', () => {
+    const S = emptyState();
+    expect(S.settings.defaultAcct).toBeNull();
+    expect(S.meta.lastAcct).toBeNull();
+    expect(defaultRecAcct(S)).toBeNull();
+    S.tx.push(tx({ acct: null, amount: 5000 }), tx({ type: 'income', cat: 'salary', acct: null, amount: 9000 }));
+    for (const a of S.accounts) expect(balance(S, a.id)).toBe(0);
+    expect(netWorth(S).net).toBe(0);
+    expect(totals(S, '2026-10')).toMatchObject({ exp: 5000, inc: 9000 });
+  });
+  it('设置的默认账户存在时预选，被删除后回到不选', () => {
+    const S = emptyState();
+    S.settings.defaultAcct = 'a-ali';
+    expect(defaultRecAcct(S)).toBe('a-ali');
+    S.accounts = S.accounts.filter(a => a.id !== 'a-ali');
+    expect(defaultRecAcct(S)).toBeNull();
+    // 旧数据没有该字段
+    delete (S.settings as any).defaultAcct;
+    expect(defaultRecAcct(S)).toBeNull();
   });
 });

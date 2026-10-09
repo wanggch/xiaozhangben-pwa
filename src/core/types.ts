@@ -83,6 +83,8 @@ export interface Settings {
   remindTime: string;
   lock: boolean;
   pin: PinHash | null;
+  /** 记一笔时默认选中的账户；null = 不选择账户（默认） */
+  defaultAcct?: string | null;
 }
 
 export interface Meta {

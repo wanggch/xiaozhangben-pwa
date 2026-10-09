@@ -7,7 +7,7 @@ import { fmt2, parseCents } from '../../core/money';
 import { md, parseD, today } from '../../core/dates';
 import { freqText, runRecurring } from '../../core/recurring';
 import { ACCT_TYPES, FREQ } from '../../core/constants';
-import { sortedAccounts } from '../../core/ledger';
+import { defaultRecAcct, sortedAccounts } from '../../core/ledger';
 import { uid } from '../../core/id';
 import type { CatType, Freq, Recur } from '../../core/types';
 
@@ -30,7 +30,7 @@ SUB.recurs = () => {
 };
 SUB.recurEdit = (p = {}) => {
   const r = p.id ? S.recurs.find(x => x.id === p.id) : null; const T = today();
-  const v: Partial<Recur> & { type: CatType; cat: string; acct: string | null; freq: Freq; mode: 'auto' | 'remind' } = r ? { ...r } : { type: 'expense', name: '', cat: S.cats.expense[0]?.id || 'other', acct: S.meta.lastAcct, freq: 'month', start: T, mode: 'auto', on: true };
+  const v: Partial<Recur> & { type: CatType; cat: string; acct: string | null; freq: Freq; mode: 'auto' | 'remind' } = r ? { ...r } : { type: 'expense', name: '', cat: S.cats.expense[0]?.id || 'other', acct: defaultRecAcct(S), freq: 'month', start: T, mode: 'auto', on: true };
   const catChips = (type: CatType) => S.cats[type].map(c => `<button class="chip ${c.id === v.cat ? 'on' : ''}" data-c="${esc(c.id)}">${ico(c.icon)}${esc(c.name)}</button>`).join('');
   return {
     title: r ? '编辑周期账单' : '新增周期账单', right: `<button class="htxt" data-act="saveRecur">保存</button>`, body: `
