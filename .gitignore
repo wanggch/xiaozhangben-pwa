@@ -6,3 +6,11 @@ playwright-report
 .lighthouse-tmp
 *.log
 release/*.zip
+server/node_modules
+server/dist
+server/data
+data/
+.env
+*.db
+*.db-wal
+*.db-shm
